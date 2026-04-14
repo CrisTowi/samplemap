@@ -37,6 +37,36 @@ export function runFA2Animated(graphology: Graph, sigma: Sigma): void {
   requestAnimationFrame(tick)
 }
 
+export function exportGraphAsPNG(): void {
+  const { sigma } = graphRefs
+  if (!sigma) return
+
+  const container = sigma.getContainer()
+  const canvases = container.querySelectorAll('canvas')
+
+  const combined = document.createElement('canvas')
+  combined.width = container.offsetWidth
+  combined.height = container.offsetHeight
+  const ctx = combined.getContext('2d')
+  if (!ctx) return
+
+  ctx.fillStyle = '#1a1a1e'
+  ctx.fillRect(0, 0, combined.width, combined.height)
+
+  canvases.forEach((canvas) => {
+    try {
+      ctx.drawImage(canvas, 0, 0)
+    } catch {
+      // Skip canvas layers that are cross-origin or empty
+    }
+  })
+
+  const link = document.createElement('a')
+  link.download = 'samplemap-graph.png'
+  link.href = combined.toDataURL('image/png')
+  link.click()
+}
+
 export function runResetLayout(): void {
   const { sigma, graphology } = graphRefs
   if (!sigma || !graphology) return

@@ -6,8 +6,10 @@ import DepthSlider from './components/DepthSlider'
 import GraphLegend from './components/GraphLegend'
 import ToastContainer from './components/ToastContainer'
 import BuildProgress from './components/BuildProgress'
+import BackgroundGraph from './components/BackgroundGraph'
+import SelectedNodeRing from './components/SelectedNodeRing'
 import { useGraphStore } from './store/graphStore'
-import { runResetLayout } from './components/graphHelpers'
+import { runResetLayout, exportGraphAsPNG } from './components/graphHelpers'
 
 export default function App() {
   const toggleSettings = useGraphStore((state) => state.toggleSettings)
@@ -20,6 +22,9 @@ export default function App() {
     <div className="relative w-screen h-screen overflow-hidden bg-[#1a1a1e]">
       {/* Full-screen graph canvas */}
       <GraphCanvas />
+
+      {/* Pulsing ring overlay for selected node */}
+      <SelectedNodeRing />
 
       {/* Top progress bar */}
       <BuildProgress />
@@ -50,17 +55,31 @@ export default function App() {
         <SearchBar />
 
         {rootId && (
-          <button
-            onClick={runResetLayout}
-            className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-            title="Reset layout"
-            aria-label="Reset graph layout"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-          </button>
+          <>
+            <button
+              onClick={runResetLayout}
+              className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+              title="Reset layout"
+              aria-label="Reset graph layout"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+            </button>
+            <button
+              onClick={exportGraphAsPNG}
+              className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+              title="Export graph as PNG"
+              aria-label="Export graph as PNG"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+          </>
         )}
 
         <button
@@ -77,13 +96,16 @@ export default function App() {
 
       {/* Empty state */}
       {!rootId && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none">
-          <p className="text-white/15 text-sm mt-24 text-center px-4">
-            Try: &ldquo;Amen Brother&rdquo;, &ldquo;Think (Lyn Collins)&rdquo;, &ldquo;Funky Drummer&rdquo;
-            <br className="sm:hidden" />
-            <span className="hidden sm:inline"> · </span>
-            or paste a YouTube / Spotify URL
-          </p>
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <BackgroundGraph />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p className="text-white/20 text-sm mt-24 text-center px-4">
+              Try: &ldquo;Amen Brother&rdquo;, &ldquo;Think (Lyn Collins)&rdquo;, &ldquo;Funky Drummer&rdquo;
+              <br className="sm:hidden" />
+              <span className="hidden sm:inline"> · </span>
+              or paste a YouTube / Spotify URL
+            </p>
+          </div>
         </div>
       )}
 
