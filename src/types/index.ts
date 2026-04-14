@@ -46,6 +46,11 @@ export interface ApiCache {
   spotify: Map<string, string | null>;
 }
 
+export interface Toast {
+  id: string;
+  message: string;
+}
+
 export interface AppStore {
   graph: GraphState;
   setRoot: (track: Track) => void;
@@ -67,6 +72,13 @@ export interface AppStore {
 
   settingsOpen: boolean;
   toggleSettings: () => void;
+
+  isBuilding: boolean;
+  setIsBuilding: (value: boolean) => void;
+
+  toasts: Toast[];
+  addToast: (message: string) => void;
+  dismissToast: (id: string) => void;
 
   apiKeys: {
     whosampled: string;

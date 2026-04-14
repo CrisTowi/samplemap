@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useGraphStore } from '../store/graphStore'
 import { MOCK_SEARCH_RESULTS, MOCK_SAMPLE_RELATIONSHIPS } from '../mocks/whosampled'
+import { searchMusicBrainz, getMBSampleRelationships } from './musicbrainz'
 import type { Track } from '../types'
 
 const BASE_URL = 'https://api.whosampled.com/v1'
@@ -41,24 +42,30 @@ export async function search(query: string): Promise<Track[]> {
   const cached = store.cache.search.get(cacheKey)
   if (cached) return cached
 
+  // 1. Mock mode
   if (USE_MOCK) {
     const results = MOCK_SEARCH_RESULTS[cacheKey] ?? []
     store.setCacheEntry('search', cacheKey, results)
     return results
   }
 
+  // 2. WhoSampled (if key present)
   const apiKey = getApiKey()
-  const response = await axios.get<{ results: Parameters<typeof mapTrack>[0][] }>(
-    `${BASE_URL}/track/search/`,
-    {
-      params: { q: query, format: 'json' },
-      headers: { Authorization: `Bearer ${apiKey}` },
-    }
-  )
+  if (apiKey) {
+    const response = await axios.get<{ results: Parameters<typeof mapTrack>[0][] }>(
+      `${BASE_URL}/track/search/`,
+      {
+        params: { q: query, format: 'json' },
+        headers: { Authorization: `Bearer ${apiKey}` },
+      }
+    )
+    const results = response.data.results.map(mapTrack)
+    store.setCacheEntry('search', cacheKey, results)
+    return results
+  }
 
-  const results = response.data.results.map(mapTrack)
-  store.setCacheEntry('search', cacheKey, results)
-  return results
+  // 3. MusicBrainz fallback
+  return searchMusicBrainz(query)
 }
 
 export async function getSampleRelationships(trackId: string): Promise<{
@@ -66,34 +73,39 @@ export async function getSampleRelationships(trackId: string): Promise<{
   sampledFrom: Track[]
 }> {
   const store = useGraphStore.getState()
+
   const cached = store.cache.samples.get(trackId)
   if (cached) return cached
 
+  // 1. Mock mode
   if (USE_MOCK) {
     const result = MOCK_SAMPLE_RELATIONSHIPS[trackId] ?? { sampledIn: [], sampledFrom: [] }
     store.setCacheEntry('samples', trackId, result)
     return result
   }
 
+  // 2. WhoSampled (if key present)
   const apiKey = getApiKey()
-  const headers = { Authorization: `Bearer ${apiKey}` }
-
-  const [containsResponse, sampledInResponse] = await Promise.all([
-    axios.get<{ results: Parameters<typeof mapTrack>[0][] }>(
-      `${BASE_URL}/track/${trackId}/contains/`,
-      { headers }
-    ),
-    axios.get<{ results: Parameters<typeof mapTrack>[0][] }>(
-      `${BASE_URL}/track/${trackId}/sampled-in/`,
-      { headers }
-    ),
-  ])
-
-  const result = {
-    sampledFrom: containsResponse.data.results.map(mapTrack),
-    sampledIn: sampledInResponse.data.results.map(mapTrack),
+  if (apiKey) {
+    const headers = { Authorization: `Bearer ${apiKey}` }
+    const [containsResponse, sampledInResponse] = await Promise.all([
+      axios.get<{ results: Parameters<typeof mapTrack>[0][] }>(
+        `${BASE_URL}/track/${trackId}/contains/`,
+        { headers }
+      ),
+      axios.get<{ results: Parameters<typeof mapTrack>[0][] }>(
+        `${BASE_URL}/track/${trackId}/sampled-in/`,
+        { headers }
+      ),
+    ])
+    const result = {
+      sampledFrom: containsResponse.data.results.map(mapTrack),
+      sampledIn: sampledInResponse.data.results.map(mapTrack),
+    }
+    store.setCacheEntry('samples', trackId, result)
+    return result
   }
 
-  store.setCacheEntry('samples', trackId, result)
-  return result
+  // 3. MusicBrainz fallback
+  return getMBSampleRelationships(trackId)
 }

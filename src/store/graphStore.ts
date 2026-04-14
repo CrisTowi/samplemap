@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Track, GraphNode, SampleEdge, GraphState, ApiCache, AppStore } from '../types'
+import type { Track, GraphNode, SampleEdge, GraphState, ApiCache, AppStore, Toast } from '../types'
 
 const NODE_CAP = 150
 
@@ -154,6 +154,17 @@ export const useGraphStore = create<AppStore>((set, get) => ({
   settingsOpen: false,
   toggleSettings: () => set((state) => ({ settingsOpen: !state.settingsOpen })),
 
+  isBuilding: false,
+  setIsBuilding: (value: boolean) => set({ isBuilding: value }),
+
+  toasts: [] as Toast[],
+  addToast: (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`
+    set((state) => ({ toasts: [...state.toasts, { id, message }] }))
+  },
+  dismissToast: (id: string) =>
+    set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
+
   apiKeys: loadApiKeys(),
   setApiKey: (key, value) => {
     const lsKey = LS_KEYS[key]
@@ -161,7 +172,6 @@ export const useGraphStore = create<AppStore>((set, get) => ({
     set((state) => ({
       apiKeys: { ...state.apiKeys, [key]: value },
     }))
-    // suppress unused var lint
     void get
   },
 }))

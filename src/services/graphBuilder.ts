@@ -129,11 +129,16 @@ async function expandNode(
 export async function buildGraphFromRoot(track: Track, maxDepth: number): Promise<void> {
   const store = useGraphStore.getState()
   store.setRoot(track)
+  store.setIsBuilding(true)
 
   const semaphore = new Semaphore(MAX_CONCURRENT)
   const visited = new Set<string>()
 
-  await expandNode(track.id, 0, maxDepth, semaphore, visited)
+  try {
+    await expandNode(track.id, 0, maxDepth, semaphore, visited)
+  } finally {
+    useGraphStore.getState().setIsBuilding(false)
+  }
 }
 
 export async function rebuildFromRoot(): Promise<void> {
@@ -146,11 +151,16 @@ export async function rebuildFromRoot(): Promise<void> {
   const maxDepth = store.graph.maxDepth
   store.resetGraph()
   store.setRoot(rootNode)
+  store.setIsBuilding(true)
 
   const semaphore = new Semaphore(MAX_CONCURRENT)
   const visited = new Set<string>()
 
-  await expandNode(rootNode.id, 0, maxDepth, semaphore, visited)
+  try {
+    await expandNode(rootNode.id, 0, maxDepth, semaphore, visited)
+  } finally {
+    useGraphStore.getState().setIsBuilding(false)
+  }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -178,6 +188,5 @@ function delay(ms: number): Promise<void> {
 }
 
 function showToast(message: string): void {
-  // Phase 4 will wire up a toast system; for now log to console
-  console.warn('[SampleMap]', message)
+  useGraphStore.getState().addToast(message)
 }

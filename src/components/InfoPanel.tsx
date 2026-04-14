@@ -53,7 +53,7 @@ export default function InfoPanel() {
   if (!node) return null
 
   return (
-    <div className="w-72 h-full flex flex-col bg-[#1a1a20]/90 backdrop-blur-md border-l border-white/10 overflow-y-auto">
+    <div className="w-72 sm:h-full flex flex-col bg-[#1a1a20]/90 sm:backdrop-blur-md sm:border-l border-white/10 overflow-y-auto">
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
