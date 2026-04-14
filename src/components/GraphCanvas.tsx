@@ -3,6 +3,7 @@ import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
 import { useGraphStore } from '../store/graphStore'
+import { drawDarkLabel, drawDarkNodeHover } from './graphHelpers'
 
 const NODE_COLORS = {
   root: '#7F77DD',
@@ -46,6 +47,8 @@ export default function GraphCanvas() {
       labelSize: 11,
       minCameraRatio: 0.1,
       maxCameraRatio: 10,
+      defaultDrawNodeLabel: drawDarkLabel,
+      defaultDrawNodeHover: drawDarkNodeHover,
     })
     sigmaRef.current = sigma
 

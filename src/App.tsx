@@ -1,98 +1,40 @@
-import { useEffect } from 'react'
 import GraphCanvas from './components/GraphCanvas'
 import SearchBar from './components/SearchBar'
 import InfoPanel from './components/InfoPanel'
 import SettingsPanel from './components/SettingsPanel'
 import DepthSlider from './components/DepthSlider'
+import GraphLegend from './components/GraphLegend'
 import { useGraphStore } from './store/graphStore'
-import { amenBrother, MOCK_SAMPLE_RELATIONSHIPS } from './mocks/whosampled'
-import type { GraphNode, SampleEdge } from './types'
-
-// Load mock graph on mount so Phase 1 has visible data
-function useMockGraph() {
-  const setRoot = useGraphStore((state) => state.setRoot)
-  const addNodes = useGraphStore((state) => state.addNodes)
-
-  useEffect(() => {
-    setRoot(amenBrother)
-
-    const relationships = MOCK_SAMPLE_RELATIONSHIPS[amenBrother.id]
-    if (!relationships) return
-
-    const depth1Nodes: GraphNode[] = [
-      ...relationships.sampledIn,
-      ...relationships.sampledFrom,
-    ].map((track) => ({
-      ...track,
-      depth: 1,
-      isRoot: false,
-      isExpanded: false,
-      isLoading: false,
-    }))
-
-    const depth1Edges: SampleEdge[] = [
-      ...relationships.sampledIn.map((track) => ({
-        id: `${track.id}-->${amenBrother.id}`,
-        sourceId: track.id,
-        targetId: amenBrother.id,
-      })),
-      ...relationships.sampledFrom.map((track) => ({
-        id: `${amenBrother.id}-->${track.id}`,
-        sourceId: amenBrother.id,
-        targetId: track.id,
-      })),
-    ]
-
-    addNodes(depth1Nodes, depth1Edges)
-
-    // Depth 2 — expand each depth-1 node
-    for (const node of depth1Nodes) {
-      const nodeRelationships = MOCK_SAMPLE_RELATIONSHIPS[node.id]
-      if (!nodeRelationships) continue
-
-      const depth2Nodes: GraphNode[] = [
-        ...nodeRelationships.sampledIn,
-        ...nodeRelationships.sampledFrom,
-      ].map((track) => ({
-        ...track,
-        depth: 2,
-        isRoot: false,
-        isExpanded: false,
-        isLoading: false,
-      }))
-
-      const depth2Edges: SampleEdge[] = [
-        ...nodeRelationships.sampledIn.map((track) => ({
-          id: `${track.id}-->${node.id}`,
-          sourceId: track.id,
-          targetId: node.id,
-        })),
-        ...nodeRelationships.sampledFrom.map((track) => ({
-          id: `${node.id}-->${track.id}`,
-          sourceId: node.id,
-          targetId: track.id,
-        })),
-      ]
-
-      addNodes(depth2Nodes, depth2Edges)
-    }
-  }, [setRoot, addNodes])
-}
 
 export default function App() {
-  useMockGraph()
-
   const toggleSettings = useGraphStore((state) => state.toggleSettings)
+  const rootId = useGraphStore((state) => state.graph.rootId)
+  const isCapped = useGraphStore((state) => state.graph.isCapped)
+  const resetGraph = useGraphStore((state) => state.resetGraph)
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#1a1a1e]">
       {/* Full-screen graph canvas */}
       <GraphCanvas />
 
+      {/* Node cap banner */}
+      {isCapped && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-yellow-900/80 border border-yellow-500/40 rounded-xl px-4 py-2.5 text-yellow-200 text-sm backdrop-blur-sm">
+          <span>Graph capped at 150 nodes. Click any node and use &ldquo;Expand from here&rdquo; to explore a sub-graph.</span>
+          <button
+            onClick={() => resetGraph()}
+            className="text-yellow-400 hover:text-yellow-100 text-lg leading-none"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Top bar */}
       <header className="absolute top-0 left-0 right-0 z-10 flex items-center gap-4 px-4 py-3 bg-black/40 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-md bg-[#7F77DD] flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-7 h-7 rounded-md bg-[#7F77DD] flex items-center justify-center text-white font-bold text-sm select-none">
             S
           </div>
           <span className="text-white font-semibold text-sm tracking-wide">SampleMap</span>
@@ -112,9 +54,19 @@ export default function App() {
         </button>
       </header>
 
-      {/* Bottom-left: depth slider stub */}
-      <div className="absolute bottom-6 left-6 z-10">
+      {/* Empty state */}
+      {!rootId && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none">
+          <p className="text-white/15 text-sm mt-24">
+            Try: &ldquo;Amen Brother&rdquo;, &ldquo;Think (Lyn Collins)&rdquo;, &ldquo;Funky Drummer&rdquo;
+          </p>
+        </div>
+      )}
+
+      {/* Bottom-left: depth slider + legend */}
+      <div className="absolute bottom-6 left-6 z-10 flex items-end gap-3">
         <DepthSlider />
+        {rootId && <GraphLegend />}
       </div>
 
       {/* Right panel: info panel stub */}
@@ -122,7 +74,7 @@ export default function App() {
         <InfoPanel />
       </div>
 
-      {/* Settings panel stub */}
+      {/* Settings panel */}
       <SettingsPanel />
     </div>
   )
