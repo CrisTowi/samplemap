@@ -5,6 +5,7 @@ import SettingsPanel from './components/SettingsPanel'
 import DepthSlider from './components/DepthSlider'
 import GraphLegend from './components/GraphLegend'
 import { useGraphStore } from './store/graphStore'
+import { runResetLayout } from './components/graphHelpers'
 
 export default function App() {
   const toggleSettings = useGraphStore((state) => state.toggleSettings)
@@ -42,9 +43,23 @@ export default function App() {
 
         <SearchBar />
 
+        {rootId && (
+          <button
+            onClick={runResetLayout}
+            className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            title="Reset layout"
+            aria-label="Reset graph layout"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+        )}
+
         <button
           onClick={toggleSettings}
-          className="ml-auto p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
           aria-label="Open settings"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,8 +84,8 @@ export default function App() {
         {rootId && <GraphLegend />}
       </div>
 
-      {/* Right panel: info panel stub */}
-      <div className="absolute top-16 right-0 bottom-0 z-10">
+      {/* Right panel: info panel */}
+      <div className="absolute top-[53px] right-0 bottom-0 z-10">
         <InfoPanel />
       </div>
 

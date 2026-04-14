@@ -1,9 +1,16 @@
 import { useEffect, useRef } from 'react'
 import Graph from 'graphology'
 import Sigma from 'sigma'
-import forceAtlas2 from 'graphology-layout-forceatlas2'
 import { useGraphStore } from '../store/graphStore'
-import { drawDarkLabel, drawDarkNodeHover } from './graphHelpers'
+import {
+  graphRefs,
+  runFA2Animated,
+  animateFadeIn,
+  applyHoverHighlight,
+  clearHoverHighlight,
+  drawDarkLabel,
+  drawDarkNodeHover,
+} from './graphHelpers'
 
 const NODE_COLORS = {
   root: '#7F77DD',
@@ -11,11 +18,8 @@ const NODE_COLORS = {
   depthN: '#888780',
 }
 
-const MAX_NODE_SIZE = 28
-const BASE_NODE_SIZE = 8
-
 function computeNodeSize(connections: number): number {
-  return Math.min(BASE_NODE_SIZE + connections * 2, MAX_NODE_SIZE)
+  return Math.min(8 + connections * 2, 28)
 }
 
 function getNodeColor(depth: number): string {
@@ -31,6 +35,7 @@ export default function GraphCanvas() {
 
   const graphState = useGraphStore((state) => state.graph)
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode)
+  const selectedNodeId = useGraphStore((state) => state.selectedNodeId)
 
   // Initialize Sigma once on mount
   useEffect(() => {
@@ -38,6 +43,7 @@ export default function GraphCanvas() {
 
     const graphology = new Graph({ type: 'directed', multi: false })
     graphologyRef.current = graphology
+    graphRefs.graphology = graphology
 
     const sigma = new Sigma(graphology, containerRef.current, {
       renderEdgeLabels: false,
@@ -51,28 +57,47 @@ export default function GraphCanvas() {
       defaultDrawNodeHover: drawDarkNodeHover,
     })
     sigmaRef.current = sigma
+    graphRefs.sigma = sigma
 
-    sigma.on('clickNode', ({ node }) => {
-      setSelectedNode(node)
+    sigma.on('clickNode', ({ node }) => setSelectedNode(node))
+    sigma.on('clickStage', () => setSelectedNode(null))
+
+    sigma.on('enterNode', ({ node }) => {
+      applyHoverHighlight(graphology, sigma, node)
     })
 
-    sigma.on('clickStage', () => {
-      setSelectedNode(null)
+    sigma.on('leaveNode', () => {
+      clearHoverHighlight(
+        graphology,
+        sigma,
+        getNodeColor,
+        (nodeId) => useGraphStore.getState().graph.nodes.get(nodeId)?.depth ?? 2
+      )
     })
 
     return () => {
       sigma.kill()
       sigmaRef.current = null
       graphologyRef.current = null
+      graphRefs.sigma = null
+      graphRefs.graphology = null
     }
   }, [setSelectedNode])
 
-  // Sync Zustand graph state → Graphology graph → Sigma
+  // Sync Zustand graph state → Graphology → Sigma
   useEffect(() => {
     const graphology = graphologyRef.current
-    if (!graphology) return
+    const sigma = sigmaRef.current
+    if (!graphology || !sigma) return
 
-    // Add missing nodes
+    const previousNodeCount = graphology.order
+
+    // Remove stale nodes
+    for (const nodeId of graphology.nodes()) {
+      if (!graphState.nodes.has(nodeId)) graphology.dropNode(nodeId)
+    }
+
+    // Add / update nodes
     for (const [nodeId, node] of graphState.nodes) {
       const connections = node.sampleCount.sampledIn + node.sampleCount.sampledFrom
       if (!graphology.hasNode(nodeId)) {
@@ -80,20 +105,13 @@ export default function GraphCanvas() {
           label: `${node.artist} – ${node.title}`,
           size: computeNodeSize(connections),
           color: getNodeColor(node.depth),
-          x: Math.random() * 10,
-          y: Math.random() * 10,
+          x: (Math.random() - 0.5) * 12,
+          y: (Math.random() - 0.5) * 12,
+          opacity: 0,
         })
       } else {
-        // Update mutable attributes (e.g. loading state color later)
         graphology.setNodeAttribute(nodeId, 'color', getNodeColor(node.depth))
         graphology.setNodeAttribute(nodeId, 'size', computeNodeSize(connections))
-      }
-    }
-
-    // Remove nodes no longer in state
-    for (const nodeId of graphology.nodes()) {
-      if (!graphState.nodes.has(nodeId)) {
-        graphology.dropNode(nodeId)
       }
     }
 
@@ -109,21 +127,26 @@ export default function GraphCanvas() {
       }
     }
 
-    // Run ForceAtlas2 briefly to settle layout when nodes > 1
-    if (graphology.order > 1) {
-      forceAtlas2.assign(graphology, {
-        iterations: 100,
-        settings: {
-          gravity: 1,
-          scalingRatio: 10,
-          slowDown: 5,
-          barnesHutOptimize: graphology.order > 50,
-        },
-      })
+    if (graphology.order > previousNodeCount) animateFadeIn(graphology, sigma)
+    if (graphology.order > 1) runFA2Animated(graphology, sigma)
+    if (previousNodeCount === 0 && graphology.order > 0) {
+      sigma.getCamera().animatedReset({ duration: 600 })
     }
 
-    sigmaRef.current?.refresh()
+    sigma.refresh()
   }, [graphState])
+
+  // Selected node highlight ring
+  useEffect(() => {
+    const graphology = graphologyRef.current
+    const sigma = sigmaRef.current
+    if (!graphology || !sigma) return
+
+    graphology.forEachNode((nodeId) => {
+      graphology.setNodeAttribute(nodeId, 'highlighted', nodeId === selectedNodeId)
+    })
+    sigma.refresh()
+  }, [selectedNodeId])
 
   return (
     <div
