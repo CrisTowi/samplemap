@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { SampleEdge } from '../types'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import { NodeImageProgram } from '@sigma/node-image'
@@ -11,6 +12,7 @@ import {
   clearHoverHighlight,
   drawDarkLabel,
   drawDarkNodeHover,
+  getEdgeColor,
 } from './graphHelpers'
 
 const NODE_COLORS = {
@@ -18,6 +20,7 @@ const NODE_COLORS = {
   depth1: '#1D9E75',
   depthN: '#888780',
 }
+
 
 // Log scale on Genius pageviews: 10K → 11, 100K → 16, 1M → 21, 10M → 26
 function computeNodeSize(pageviews: number | undefined): number {
@@ -29,6 +32,39 @@ function getNodeColor(depth: number): string {
   if (depth === 0) return NODE_COLORS.root
   if (depth === 1) return NODE_COLORS.depth1
   return NODE_COLORS.depthN
+}
+
+const SPAWN_JITTER = 0.3
+
+/**
+ * For a newly added node, find the position of an already-placed neighbor so
+ * the node can spawn adjacent to it instead of at a random canvas offset.
+ */
+function findParentPosition(
+  graphology: Graph,
+  nodeId: string,
+  edges: Map<string, SampleEdge>
+): { x: number; y: number } {
+  for (const edge of edges.values()) {
+    const neighborId =
+      edge.targetId === nodeId ? edge.sourceId :
+      edge.sourceId === nodeId ? edge.targetId :
+      null
+
+    if (neighborId && graphology.hasNode(neighborId)) {
+      const parentX = graphology.getNodeAttribute(neighborId, 'x') as number
+      const parentY = graphology.getNodeAttribute(neighborId, 'y') as number
+      return {
+        x: parentX + (Math.random() - 0.5) * SPAWN_JITTER,
+        y: parentY + (Math.random() - 0.5) * SPAWN_JITTER,
+      }
+    }
+  }
+  // Fallback: no connected neighbor found yet, spawn near center
+  return {
+    x: (Math.random() - 0.5) * SPAWN_JITTER,
+    y: (Math.random() - 0.5) * SPAWN_JITTER,
+  }
 }
 
 export default function GraphCanvas() {
@@ -50,7 +86,7 @@ export default function GraphCanvas() {
 
     const sigma = new Sigma(graphology, containerRef.current, {
       renderEdgeLabels: false,
-      defaultEdgeColor: '#555553',
+      defaultEdgeColor: '#333331',
       defaultEdgeType: 'arrow',
       labelColor: { color: '#d4d4d2' },
       labelSize: 11,
@@ -110,13 +146,17 @@ export default function GraphCanvas() {
       const size = computeNodeSize(node.pageviews)
 
       if (!graphology.hasNode(nodeId)) {
+        // Spawn near the parent node (if found) so FA2 doesn't have to drag it across the canvas
+        const spawnPos = isRoot
+          ? { x: 0, y: 0 }
+          : findParentPosition(graphology, nodeId, graphState.edges)
+
         graphology.addNode(nodeId, {
           label: `${node.artist} – ${node.title}`,
           size,
           color: getNodeColor(node.depth),
-          // Root node pinned at canvas center; others spawn nearby
-          x: isRoot ? 0 : (Math.random() - 0.5) * 1,
-          y: isRoot ? 0 : (Math.random() - 0.5) * 1,
+          x: spawnPos.x,
+          y: spawnPos.y,
           opacity: 0,
           // Image: use cover art if available, otherwise plain circle
           type: node.coverArt ? 'image' : 'circle',
@@ -139,14 +179,16 @@ export default function GraphCanvas() {
         if (graphology.hasNode(edge.sourceId) && graphology.hasNode(edge.targetId)) {
           graphology.addDirectedEdgeWithKey(edgeId, edge.sourceId, edge.targetId, {
             size: 0.5,
-            color: '#555553',
+            color: getEdgeColor(edge.direction, false),
+            direction: edge.direction,
           })
         }
       }
     }
 
-    if (graphology.order > previousNodeCount) animateFadeIn(graphology, sigma)
-    if (graphology.order > 1) runFA2Animated(graphology, sigma)
+    const nodesAdded = graphology.order > previousNodeCount
+    if (nodesAdded) animateFadeIn(graphology, sigma)
+    if (nodesAdded && graphology.order > 1) runFA2Animated(graphology, sigma)
 
     // On first load: center camera on the root node
     if (previousNodeCount === 0 && graphology.order > 0) {

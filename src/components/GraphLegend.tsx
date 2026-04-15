@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { EDGE_COLORS } from './graphHelpers'
 
 const SIZE_STEPS = [
   { r: 5, label: 'niche' },
@@ -10,6 +11,11 @@ const COLOR_STEPS = [
   { color: '#7F77DD', label: 'root' },
   { color: '#1D9E75', label: 'depth 1' },
   { color: '#888780', label: 'depth 2+' },
+]
+
+const EDGE_STEPS = [
+  { color: EDGE_COLORS.sampled_from.bright, label: 'sampled from' },
+  { color: EDGE_COLORS.sampled_in.bright,   label: 'sampled in' },
 ]
 
 const CANVAS_HEIGHT = 30
@@ -59,6 +65,30 @@ export default function GraphLegend() {
                 <div key={step.color} className="flex items-center gap-2">
                   <svg width="10" height="10" viewBox="0 0 10 10">
                     <circle cx="5" cy="5" r="4" fill={step.color} />
+                  </svg>
+                  <span className="text-white/40 text-[10px]">{step.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-white/10" />
+
+          {/* Edge direction */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-white/40 text-[10px] font-semibold uppercase tracking-widest">
+              Edge (on hover)
+            </span>
+            <div className="flex flex-col gap-1">
+              {EDGE_STEPS.map((step) => (
+                <div key={step.label} className="flex items-center gap-2">
+                  <svg width="24" height="10" viewBox="0 0 24 10">
+                    <defs>
+                      <marker id={`arrow-${step.label}`} markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
+                        <path d="M0,0 L4,2 L0,4 Z" fill={step.color} />
+                      </marker>
+                    </defs>
+                    <line x1="2" y1="5" x2="18" y2="5" stroke={step.color} strokeWidth="2" markerEnd={`url(#arrow-${step.label})`} />
                   </svg>
                   <span className="text-white/40 text-[10px]">{step.label}</span>
                 </div>

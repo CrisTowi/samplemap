@@ -4,6 +4,20 @@ import forceAtlas2 from 'graphology-layout-forceatlas2'
 import type { Settings } from 'sigma/settings'
 import type { NodeDisplayData, PartialButFor } from 'sigma/types'
 
+// ─── Edge direction colors ────────────────────────────────────────────────────
+
+export const EDGE_COLORS = {
+  sampled_from: { dim: '#1a4f3e', bright: '#1D9E75' },
+  sampled_in:   { dim: '#3a3667', bright: '#7F77DD' },
+  unknown:      { dim: '#333331', bright: '#888780' },
+}
+
+export function getEdgeColor(direction: string | undefined, bright: boolean): string {
+  if (direction === 'sampled_from') return bright ? EDGE_COLORS.sampled_from.bright : EDGE_COLORS.sampled_from.dim
+  if (direction === 'sampled_in')   return bright ? EDGE_COLORS.sampled_in.bright   : EDGE_COLORS.sampled_in.dim
+  return bright ? EDGE_COLORS.unknown.bright : EDGE_COLORS.unknown.dim
+}
+
 // ─── Module-level graph refs ─────────────────────────────────────────────────
 // Stored here (outside the React component) so App can call runResetLayout
 // without prop drilling, and so Fast Refresh doesn't object to mixed exports.
@@ -16,12 +30,22 @@ export const graphRefs: { sigma: Sigma | null; graphology: Graph | null } = {
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
 const FA2_FRAME_ITERATIONS = 4
-const FA2_TOTAL_FRAMES = 60
+const FA2_TOTAL_FRAMES = 80
+
+let fa2AnimFrame: number | null = null
+let fa2FrameCount = 0
 
 export function runFA2Animated(graphology: Graph, sigma: Sigma): void {
-  let frame = 0
+  // If already running, reset the frame counter so we extend (not restart) the run
+  if (fa2AnimFrame !== null) {
+    fa2FrameCount = 0
+    return
+  }
+
+  fa2FrameCount = 0
+
   const tick = () => {
-    frame++
+    fa2FrameCount++
     forceAtlas2.assign(graphology, {
       iterations: FA2_FRAME_ITERATIONS,
       settings: {
@@ -33,9 +57,14 @@ export function runFA2Animated(graphology: Graph, sigma: Sigma): void {
       },
     })
     sigma.refresh()
-    if (frame < FA2_TOTAL_FRAMES) requestAnimationFrame(tick)
+    if (fa2FrameCount < FA2_TOTAL_FRAMES) {
+      fa2AnimFrame = requestAnimationFrame(tick)
+    } else {
+      fa2AnimFrame = null
+    }
   }
-  requestAnimationFrame(tick)
+
+  fa2AnimFrame = requestAnimationFrame(tick)
 }
 
 export function exportGraphAsPNG(): void {
@@ -151,7 +180,8 @@ export function applyHoverHighlight(graphology: Graph, sigma: Sigma, nodeId: str
 
   graphology.forEachEdge((edgeId) => {
     if (connectedEdges.has(edgeId)) {
-      graphology.setEdgeAttribute(edgeId, 'color', '#aaa8a2')
+      const direction = graphology.getEdgeAttribute(edgeId, 'direction') as string | undefined
+      graphology.setEdgeAttribute(edgeId, 'color', getEdgeColor(direction, true))
       graphology.setEdgeAttribute(edgeId, 'size', 1.5)
     } else {
       graphology.setEdgeAttribute(edgeId, 'color', '#2a2a2a')
@@ -183,7 +213,8 @@ export function clearHoverHighlight(
     graphology.setNodeAttribute(nodeId, 'color', getNodeColor(getDepth(nodeId)))
   })
   graphology.forEachEdge((edgeId) => {
-    graphology.setEdgeAttribute(edgeId, 'color', '#555553')
+    const direction = graphology.getEdgeAttribute(edgeId, 'direction') as string | undefined
+    graphology.setEdgeAttribute(edgeId, 'color', getEdgeColor(direction, false))
     graphology.setEdgeAttribute(edgeId, 'size', 0.5)
   })
 

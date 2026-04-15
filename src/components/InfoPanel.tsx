@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useGraphStore } from '../store/graphStore'
 import { getPlayUrl, getVideoViewCount } from '../services/youtube'
 import { buildGraphFromRoot } from '../services/graphBuilder'
+import { getGeniusSampleRelationships } from '../services/genius'
 
 function extractVideoId(url: string): string | null {
   const match = /[?&]v=([^&]+)/.exec(url) ?? /youtu\.be\/([^?&]+)/.exec(url)
@@ -24,8 +25,24 @@ export default function InfoPanel() {
   const [fallbackVideoId, setFallbackVideoId] = useState<string | null>(null)
   const [isLoadingVideo, setIsLoadingVideo] = useState(false)
   const [viewCount, setViewCount] = useState<number | null>(null)
+  const [isLoadingMeta, setIsLoadingMeta] = useState(false)
 
   const node = selectedNodeId ? nodes.get(selectedNodeId) : null
+
+  // For unexpanded nodes (depth > 0, never fetched), load their metadata on selection
+  useEffect(() => {
+    if (!node || node.isExpanded) return
+
+    setIsLoadingMeta(true)
+    void (async () => {
+      try {
+        const { trackMeta } = await getGeniusSampleRelationships(node.id)
+        useGraphStore.getState().setNodeExpanded(node.id, { ...trackMeta })
+      } finally {
+        setIsLoadingMeta(false)
+      }
+    })()
+  }, [node?.id, node?.isExpanded])
 
   // Use Genius-provided YouTube URL if available; fall back to YouTube API search
   const videoId = node?.youtubeUrl
@@ -169,12 +186,18 @@ export default function InfoPanel() {
       {/* Sample counts */}
       <div className="px-4 py-3 flex gap-4 border-b border-white/10 shrink-0">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[#7F77DD] text-sm font-semibold">{node.sampleCount.sampledIn.toLocaleString()}</span>
+          {isLoadingMeta
+            ? <span className="text-white/20 text-sm font-semibold">—</span>
+            : <span className="text-[#7F77DD] text-sm font-semibold">{node.sampleCount.sampledIn.toLocaleString()}</span>
+          }
           <span className="text-white/35 text-[10px] uppercase tracking-wider">sampled in</span>
         </div>
         <div className="w-px bg-white/10" />
         <div className="flex flex-col gap-0.5">
-          <span className="text-[#1D9E75] text-sm font-semibold">{node.sampleCount.sampledFrom.toLocaleString()}</span>
+          {isLoadingMeta
+            ? <span className="text-white/20 text-sm font-semibold">—</span>
+            : <span className="text-[#1D9E75] text-sm font-semibold">{node.sampleCount.sampledFrom.toLocaleString()}</span>
+          }
           <span className="text-white/35 text-[10px] uppercase tracking-wider">samples from</span>
         </div>
       </div>

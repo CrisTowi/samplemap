@@ -23,6 +23,7 @@ export interface SampleEdge {
   sourceId: string;
   targetId: string;
   sampleType?: 'interpolation' | 'replay' | 'direct';
+  direction?: 'sampled_from' | 'sampled_in';
 }
 
 export interface GraphNode extends Track {

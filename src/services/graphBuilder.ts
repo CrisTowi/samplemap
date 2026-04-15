@@ -108,11 +108,13 @@ async function expandNode(
       id: `${track.id}-->${trackId}`,
       sourceId: track.id,
       targetId: trackId,
+      direction: 'sampled_in' as const,
     })),
     ...relationships.sampledFrom.map((track) => ({
       id: `${trackId}-->${track.id}`,
       sourceId: trackId,
       targetId: track.id,
+      direction: 'sampled_from' as const,
     })),
   ]
 
@@ -158,6 +160,7 @@ export async function rebuildFromRoot(): Promise<void> {
   const maxDepth = store.graph.maxDepth
   store.resetGraph()
   store.setRoot(rootNode)
+  store.setMaxDepth(maxDepth)
   store.setIsBuilding(true)
 
   const semaphore = new Semaphore(MAX_CONCURRENT)
