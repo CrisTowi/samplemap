@@ -6,6 +6,13 @@
   NODE_VERSION = "20"
 
 [[redirects]]
+  from = "/genius-api/*"
+  to = "https://api.genius.com/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-For = ""}
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
