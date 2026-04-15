@@ -7,6 +7,11 @@ export interface Track {
   coverArt?: string;
   youtubeUrl?: string;
   spotifyUrl?: string;
+  geniusUrl?: string;
+  producers?: string[];
+  featuredArtists?: string[];
+  description?: string;
+  pageviews?: number;
   sampleCount: {
     sampledIn: number;
     sampledFrom: number;
@@ -36,12 +41,26 @@ export interface GraphState {
   isCapped: boolean;
 }
 
+export interface TrackMeta {
+  geniusUrl?: string;
+  youtubeUrl?: string;
+  spotifyUrl?: string;
+  producers?: string[];
+  featuredArtists?: string[];
+  description?: string;
+  pageviews?: number;
+  sampleCount: { sampledIn: number; sampledFrom: number };
+}
+
+export interface SampleCacheEntry {
+  sampledIn: Track[];
+  sampledFrom: Track[];
+  trackMeta?: TrackMeta;
+}
+
 export interface ApiCache {
   search: Map<string, Track[]>;
-  samples: Map<string, {
-    sampledIn: Track[];
-    sampledFrom: Track[];
-  }>;
+  samples: Map<string, SampleCacheEntry>;
   youtube: Map<string, string>;
   spotify: Map<string, string | null>;
 }
@@ -56,7 +75,7 @@ export interface AppStore {
   setRoot: (track: Track) => void;
   addNodes: (nodes: GraphNode[], edges: SampleEdge[]) => void;
   setNodeLoading: (id: string, loading: boolean) => void;
-  setNodeExpanded: (id: string) => void;
+  setNodeExpanded: (id: string, update?: Partial<Pick<Track, 'sampleCount' | 'youtubeUrl' | 'spotifyUrl' | 'geniusUrl' | 'producers' | 'featuredArtists' | 'description' | 'pageviews'>>) => void;
   setMaxDepth: (depth: number) => void;
   resetGraph: () => void;
 
@@ -70,21 +89,10 @@ export interface AppStore {
   selectedNodeId: string | null;
   setSelectedNode: (id: string | null) => void;
 
-  settingsOpen: boolean;
-  toggleSettings: () => void;
-
   isBuilding: boolean;
   setIsBuilding: (value: boolean) => void;
 
   toasts: Toast[];
   addToast: (message: string) => void;
   dismissToast: (id: string) => void;
-
-  apiKeys: {
-    whosampled: string;
-    youtube: string;
-    spotifyClientId: string;
-    spotifyClientSecret: string;
-  };
-  setApiKey: (key: keyof AppStore['apiKeys'], value: string) => void;
 }

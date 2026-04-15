@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
 const SIZE_STEPS = [
-  { r: 5, label: 'few' },
+  { r: 5, label: 'niche' },
   { r: 9, label: '' },
-  { r: 14, label: 'many' },
+  { r: 14, label: 'popular' },
 ]
 
 const COLOR_STEPS = [
@@ -38,11 +38,11 @@ export default function GraphLegend() {
                     <circle key={index} cx={cx} cy={CANVAS_HEIGHT / 2} r={step.r} fill="#888780" />
                   )
                 })}
-                <text x="6"  y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">few</text>
-                <text x="48" y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">many</text>
+                <text x="6"  y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">niche</text>
+                <text x="48" y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">popular</text>
               </svg>
               <span className="text-white/40 text-[10px] leading-tight">
-                = sample<br />count
+                = Genius<br />views
               </span>
             </div>
           </div>

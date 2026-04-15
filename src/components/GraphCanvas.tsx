@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import Graph from 'graphology'
 import Sigma from 'sigma'
+import { NodeImageProgram } from '@sigma/node-image'
 import { useGraphStore } from '../store/graphStore'
 import {
   graphRefs,
@@ -18,8 +19,10 @@ const NODE_COLORS = {
   depthN: '#888780',
 }
 
-function computeNodeSize(connections: number): number {
-  return Math.min(8 + connections * 2, 28)
+// Log scale on Genius pageviews: 10K → 11, 100K → 16, 1M → 21, 10M → 26
+function computeNodeSize(pageviews: number | undefined): number {
+  if (!pageviews) return 8
+  return Math.min(6 + Math.max(0, Math.log10(pageviews) - 3) * 5, 28)
 }
 
 function getNodeColor(depth: number): string {
@@ -55,6 +58,9 @@ export default function GraphCanvas() {
       maxCameraRatio: 10,
       defaultDrawNodeLabel: drawDarkLabel,
       defaultDrawNodeHover: drawDarkNodeHover,
+      nodeProgramClasses: {
+        image: NodeImageProgram,
+      },
     })
     sigmaRef.current = sigma
     graphRefs.sigma = sigma
@@ -91,6 +97,7 @@ export default function GraphCanvas() {
     if (!graphology || !sigma) return
 
     const previousNodeCount = graphology.order
+    const rootId = useGraphStore.getState().graph.rootId
 
     // Remove stale nodes
     for (const nodeId of graphology.nodes()) {
@@ -99,19 +106,30 @@ export default function GraphCanvas() {
 
     // Add / update nodes
     for (const [nodeId, node] of graphState.nodes) {
-      const connections = node.sampleCount.sampledIn + node.sampleCount.sampledFrom
+      const isRoot = nodeId === rootId
+      const size = computeNodeSize(node.pageviews)
+
       if (!graphology.hasNode(nodeId)) {
         graphology.addNode(nodeId, {
           label: `${node.artist} – ${node.title}`,
-          size: computeNodeSize(connections),
+          size,
           color: getNodeColor(node.depth),
-          x: (Math.random() - 0.5) * 12,
-          y: (Math.random() - 0.5) * 12,
+          // Root node pinned at canvas center; others spawn nearby
+          x: isRoot ? 0 : (Math.random() - 0.5) * 1,
+          y: isRoot ? 0 : (Math.random() - 0.5) * 1,
           opacity: 0,
+          // Image: use cover art if available, otherwise plain circle
+          type: node.coverArt ? 'image' : 'circle',
+          image: node.coverArt ?? null,
         })
       } else {
         graphology.setNodeAttribute(nodeId, 'color', getNodeColor(node.depth))
-        graphology.setNodeAttribute(nodeId, 'size', computeNodeSize(connections))
+        graphology.setNodeAttribute(nodeId, 'size', size)
+        // Update image if it became available after expansion
+        if (node.coverArt && graphology.getNodeAttribute(nodeId, 'type') !== 'image') {
+          graphology.setNodeAttribute(nodeId, 'type', 'image')
+          graphology.setNodeAttribute(nodeId, 'image', node.coverArt)
+        }
       }
     }
 
@@ -129,6 +147,8 @@ export default function GraphCanvas() {
 
     if (graphology.order > previousNodeCount) animateFadeIn(graphology, sigma)
     if (graphology.order > 1) runFA2Animated(graphology, sigma)
+
+    // On first load: center camera on the root node
     if (previousNodeCount === 0 && graphology.order > 0) {
       sigma.getCamera().animatedReset({ duration: 600 })
     }

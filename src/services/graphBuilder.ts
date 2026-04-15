@@ -1,4 +1,5 @@
 import { getSampleRelationships } from './whosampled'
+import type { SampleRelationshipsResult } from './whosampled'
 import { useGraphStore } from '../store/graphStore'
 import type { Track, GraphNode, SampleEdge } from '../types'
 
@@ -51,7 +52,7 @@ async function expandNode(
   store.setNodeLoading(trackId, true)
 
   await semaphore.acquire()
-  let relationships: { sampledIn: Track[]; sampledFrom: Track[] }
+  let relationships: SampleRelationshipsResult
   try {
     relationships = await getSampleRelationships(trackId)
   } catch (error: unknown) {
@@ -116,7 +117,13 @@ async function expandNode(
   ]
 
   useGraphStore.getState().addNodes(newNodes, newEdges)
-  useGraphStore.getState().setNodeExpanded(trackId)
+  useGraphStore.getState().setNodeExpanded(trackId, {
+    sampleCount: {
+      sampledIn: relationships.sampledIn.length,
+      sampledFrom: relationships.sampledFrom.length,
+    },
+    ...relationships.trackMeta,
+  })
 
   // Recurse breadth-first
   await Promise.all(

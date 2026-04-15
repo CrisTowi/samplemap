@@ -4,21 +4,21 @@ import { useGraphStore } from '../store/graphStore'
 const TOKEN_URL = 'https://accounts.spotify.com/api/token'
 const API_URL = 'https://api.spotify.com/v1'
 
+const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID ?? ''
+const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET ?? ''
+
 // In-memory token cache (not persisted — short-lived)
 let cachedToken: { value: string; expiresAt: number } | null = null
 
 async function getAccessToken(): Promise<string | null> {
-  const store = useGraphStore.getState()
-  const { spotifyClientId, spotifyClientSecret } = store.apiKeys
-
-  if (!spotifyClientId || !spotifyClientSecret) return null
+  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) return null
 
   if (cachedToken && Date.now() < cachedToken.expiresAt) {
     return cachedToken.value
   }
 
   try {
-    const credentials = btoa(`${spotifyClientId}:${spotifyClientSecret}`)
+    const credentials = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)
     const response = await axios.post<{ access_token: string; expires_in: number }>(
       TOKEN_URL,
       'grant_type=client_credentials',
@@ -32,7 +32,6 @@ async function getAccessToken(): Promise<string | null> {
 
     cachedToken = {
       value: response.data.access_token,
-      // Subtract 60s as buffer before expiry
       expiresAt: Date.now() + (response.data.expires_in - 60) * 1000,
     }
 
@@ -64,7 +63,6 @@ export async function getTrackUrl(artist: string, title: string): Promise<string
     store.setCacheEntry('spotify', cacheKey, url)
     return url
   } catch (error: unknown) {
-    // 401 — token may have expired, clear cache and retry once
     const status = (error as { response?: { status: number } })?.response?.status
     if (status === 401) {
       cachedToken = null

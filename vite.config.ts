@@ -7,4 +7,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/genius-api': {
+        target: 'https://api.genius.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/genius-api/, ''),
+      },
+    },
+  },
 })

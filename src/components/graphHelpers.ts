@@ -25,9 +25,10 @@ export function runFA2Animated(graphology: Graph, sigma: Sigma): void {
     forceAtlas2.assign(graphology, {
       iterations: FA2_FRAME_ITERATIONS,
       settings: {
-        gravity: 1,
-        scalingRatio: 10,
+        gravity: 8,
+        scalingRatio: 1,
         slowDown: 8,
+        adjustSizes: false,
         barnesHutOptimize: graphology.order > 50,
       },
     })
@@ -94,7 +95,55 @@ export function animateFadeIn(graphology: Graph, sigma: Sigma): void {
   requestAnimationFrame(tick)
 }
 
-// ─── Hover highlight ─────────────────────────────────────────────────────────
+// ─── Hover highlight + scale animation ───────────────────────────────────────
+
+const HOVER_SCALE = 1.7
+const HOVER_ANIM_FRAMES = 12
+
+let hoverAnimFrame: number | null = null
+let hoveredNodeId: string | null = null
+let hoveredNodeBaseSize: number = 0
+
+function cancelHoverAnim(): void {
+  if (hoverAnimFrame !== null) {
+    cancelAnimationFrame(hoverAnimFrame)
+    hoverAnimFrame = null
+  }
+}
+
+function animateNodeSize(
+  graphology: Graph,
+  sigma: Sigma,
+  nodeId: string,
+  fromSize: number,
+  toSize: number,
+  onDone?: () => void
+): void {
+  cancelHoverAnim()
+  let frame = 0
+
+  const tick = () => {
+    frame++
+    const progress = frame / HOVER_ANIM_FRAMES
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - Math.min(progress, 1), 3)
+    const size = fromSize + (toSize - fromSize) * eased
+
+    if (graphology.hasNode(nodeId)) {
+      graphology.setNodeAttribute(nodeId, 'size', size)
+      sigma.refresh()
+    }
+
+    if (frame < HOVER_ANIM_FRAMES) {
+      hoverAnimFrame = requestAnimationFrame(tick)
+    } else {
+      hoverAnimFrame = null
+      onDone?.()
+    }
+  }
+
+  hoverAnimFrame = requestAnimationFrame(tick)
+}
 
 export function applyHoverHighlight(graphology: Graph, sigma: Sigma, nodeId: string): void {
   const connectedEdges = new Set(graphology.edges(nodeId))
@@ -116,6 +165,11 @@ export function applyHoverHighlight(graphology: Graph, sigma: Sigma, nodeId: str
     }
   })
 
+  // Animate the hovered node scaling up
+  hoveredNodeId = nodeId
+  hoveredNodeBaseSize = graphology.getNodeAttribute(nodeId, 'size') as number ?? 8
+  animateNodeSize(graphology, sigma, nodeId, hoveredNodeBaseSize, hoveredNodeBaseSize * HOVER_SCALE)
+
   sigma.refresh()
 }
 
@@ -132,6 +186,16 @@ export function clearHoverHighlight(
     graphology.setEdgeAttribute(edgeId, 'color', '#555553')
     graphology.setEdgeAttribute(edgeId, 'size', 0.5)
   })
+
+  // Animate the previously hovered node back to its base size
+  if (hoveredNodeId && graphology.hasNode(hoveredNodeId)) {
+    const currentSize = graphology.getNodeAttribute(hoveredNodeId, 'size') as number ?? hoveredNodeBaseSize * HOVER_SCALE
+    const nodeToRestore = hoveredNodeId
+    const baseSize = hoveredNodeBaseSize
+    animateNodeSize(graphology, sigma, nodeToRestore, currentSize, baseSize)
+  }
+
+  hoveredNodeId = null
   sigma.refresh()
 }
 

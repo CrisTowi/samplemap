@@ -3,28 +3,13 @@ import type { Track, GraphNode, SampleEdge, GraphState, ApiCache, AppStore, Toas
 
 const NODE_CAP = 150
 
-const LS_KEYS = {
-  whosampled: 'sc_whosampled_key',
-  youtube: 'sc_youtube_key',
-  spotifyClientId: 'sc_spotify_client_id',
-  spotifyClientSecret: 'sc_spotify_client_secret',
-} as const
-
-function loadApiKeys(): AppStore['apiKeys'] {
-  return {
-    whosampled: localStorage.getItem(LS_KEYS.whosampled) ?? '',
-    youtube: localStorage.getItem(LS_KEYS.youtube) ?? '',
-    spotifyClientId: localStorage.getItem(LS_KEYS.spotifyClientId) ?? '',
-    spotifyClientSecret: localStorage.getItem(LS_KEYS.spotifyClientSecret) ?? '',
-  }
-}
 
 function emptyGraphState(): GraphState {
   return {
     nodes: new Map(),
     edges: new Map(),
     rootId: null,
-    maxDepth: 2,
+    maxDepth: 1,
     nodeCount: 0,
     isCapped: false,
   }
@@ -39,7 +24,7 @@ function emptyCache(): ApiCache {
   }
 }
 
-export const useGraphStore = create<AppStore>((set, get) => ({
+export const useGraphStore = create<AppStore>((set) => ({
   graph: emptyGraphState(),
 
   setRoot: (track: Track) => {
@@ -112,12 +97,12 @@ export const useGraphStore = create<AppStore>((set, get) => ({
     })
   },
 
-  setNodeExpanded: (id: string) => {
+  setNodeExpanded: (id, update) => {
     set((state) => {
       const nodes = new Map(state.graph.nodes)
       const node = nodes.get(id)
       if (node) {
-        nodes.set(id, { ...node, isExpanded: true, isLoading: false })
+        nodes.set(id, { ...node, isExpanded: true, isLoading: false, ...update })
       }
       return { graph: { ...state.graph, nodes } }
     })
@@ -151,9 +136,6 @@ export const useGraphStore = create<AppStore>((set, get) => ({
   selectedNodeId: null,
   setSelectedNode: (id: string | null) => set({ selectedNodeId: id }),
 
-  settingsOpen: false,
-  toggleSettings: () => set((state) => ({ settingsOpen: !state.settingsOpen })),
-
   isBuilding: false,
   setIsBuilding: (value: boolean) => set({ isBuilding: value }),
 
@@ -165,13 +147,4 @@ export const useGraphStore = create<AppStore>((set, get) => ({
   dismissToast: (id: string) =>
     set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
 
-  apiKeys: loadApiKeys(),
-  setApiKey: (key, value) => {
-    const lsKey = LS_KEYS[key]
-    localStorage.setItem(lsKey, value)
-    set((state) => ({
-      apiKeys: { ...state.apiKeys, [key]: value },
-    }))
-    void get
-  },
 }))
