@@ -1,48 +1,72 @@
 import { useState, useEffect } from 'react'
 import { useGraphStore } from '../store/graphStore'
-import { getPlayUrl } from '../services/youtube'
-import { getTrackUrl } from '../services/spotify'
+import { getPlayUrl, getVideoViewCount } from '../services/youtube'
 import { buildGraphFromRoot } from '../services/graphBuilder'
+
+function extractVideoId(url: string): string | null {
+  const match = /[?&]v=([^&]+)/.exec(url) ?? /youtu\.be\/([^?&]+)/.exec(url)
+  return match ? match[1] : null
+}
+
+function formatViewCount(count: number): string {
+  if (count >= 1_000_000_000) return `${(count / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B views`
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M views`
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K views`
+  return `${count} views`
+}
 
 export default function InfoPanel() {
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId)
   const nodes = useGraphStore((state) => state.graph.nodes)
-  const apiKeys = useGraphStore((state) => state.apiKeys)
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode)
   const maxDepth = useGraphStore((state) => state.graph.maxDepth)
 
-  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null)
-  const [spotifyUrl, setSpotifyUrl] = useState<string | null>(null)
-  const [isLoadingLinks, setIsLoadingLinks] = useState(false)
+  const [fallbackVideoId, setFallbackVideoId] = useState<string | null>(null)
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false)
+  const [viewCount, setViewCount] = useState<number | null>(null)
 
   const node = selectedNodeId ? nodes.get(selectedNodeId) : null
 
+  // Use Genius-provided YouTube URL if available; fall back to YouTube API search
+  const videoId = node?.youtubeUrl
+    ? extractVideoId(node.youtubeUrl)
+    : fallbackVideoId
+
   useEffect(() => {
     if (!node) {
-      setYoutubeUrl(null)
-      setSpotifyUrl(null)
+      setFallbackVideoId(null)
+      setViewCount(null)
       return
     }
 
-    setYoutubeUrl(null)
-    setSpotifyUrl(null)
-    setIsLoadingLinks(true)
+    setViewCount(null)
+
+    // If Genius already gave us a YouTube URL, no need for a separate lookup
+    if (node.youtubeUrl) {
+      setFallbackVideoId(null)
+      const resolvedId = extractVideoId(node.youtubeUrl)
+      if (resolvedId) {
+        void getVideoViewCount(resolvedId).then(setViewCount)
+      }
+      return
+    }
+
+    setFallbackVideoId(null)
+    setIsLoadingVideo(true)
 
     void (async () => {
       try {
-        const [ytUrl, spUrl] = await Promise.all([
-          getPlayUrl(node.artist, node.title),
-          apiKeys.spotifyClientId && apiKeys.spotifyClientSecret
-            ? getTrackUrl(node.artist, node.title)
-            : Promise.resolve(null),
-        ])
-        setYoutubeUrl(ytUrl || null)
-        setSpotifyUrl(spUrl)
+        const url = await getPlayUrl(node.artist, node.title)
+        const resolvedId = extractVideoId(url)
+        setFallbackVideoId(resolvedId)
+        if (resolvedId) {
+          void getVideoViewCount(resolvedId).then(setViewCount)
+        }
       } finally {
-        setIsLoadingLinks(false)
+        setIsLoadingVideo(false)
       }
     })()
-  }, [node, apiKeys.spotifyClientId, apiKeys.spotifyClientSecret])
+  }, [node?.id, node?.youtubeUrl])
 
   const handleExpandFromHere = async () => {
     if (!node) return
@@ -51,6 +75,8 @@ export default function InfoPanel() {
   }
 
   if (!node) return null
+
+  const showVideoLoader = isLoadingVideo && !node.youtubeUrl
 
   return (
     <div className="w-72 sm:h-full flex flex-col bg-[#1a1a20]/90 sm:backdrop-blur-md sm:border-l border-white/10 overflow-y-auto">
@@ -70,21 +96,43 @@ export default function InfoPanel() {
         </button>
       </div>
 
-      {/* Cover art */}
-      <div className="shrink-0 aspect-square w-full bg-white/5 relative overflow-hidden">
-        {node.coverArt ? (
+      {/* YouTube player / cover art */}
+      <div className="shrink-0 w-full bg-black relative" style={{ aspectRatio: '16/9' }}>
+        {showVideoLoader ? (
+          <div className="w-full h-full flex items-center justify-center bg-white/5">
+            <div className="w-5 h-5 border-2 border-white/20 border-t-white/50 rounded-full animate-spin" />
+          </div>
+        ) : videoId ? (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={`${node.title} — ${node.artist}`}
+          />
+        ) : node.coverArt ? (
           <img
             src={node.coverArt}
             alt={`${node.title} cover art`}
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-white/10">
+          <div className="w-full h-full flex items-center justify-center bg-white/5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-white/10">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="12" r="3" />
               <line x1="12" y1="2" x2="12" y2="9" />
             </svg>
+          </div>
+        )}
+
+        {/* View count badge */}
+        {viewCount !== null && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/75 backdrop-blur-sm rounded-md px-2.5 py-1 pointer-events-none">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-[#FF4444] shrink-0">
+              <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8z"/>
+            </svg>
+            <span className="text-white/90 text-xs font-semibold leading-none">{formatViewCount(viewCount)}</span>
           </div>
         )}
       </div>
@@ -93,12 +141,30 @@ export default function InfoPanel() {
       <div className="px-4 py-4 flex flex-col gap-1 border-b border-white/10 shrink-0">
         <h2 className="text-white font-semibold text-base leading-snug">{node.title}</h2>
         <p className="text-white/60 text-sm">{node.artist}</p>
+        {node.featuredArtists && node.featuredArtists.length > 0 && (
+          <p className="text-white/40 text-xs">feat. {node.featuredArtists.join(', ')}</p>
+        )}
         {(node.album || node.year) && (
           <p className="text-white/35 text-xs mt-0.5">
             {[node.album, node.year].filter(Boolean).join(' · ')}
           </p>
         )}
       </div>
+
+      {/* Description */}
+      {node.description && (
+        <div className="px-4 py-3 border-b border-white/10 shrink-0">
+          <p className="text-white/40 text-xs leading-relaxed">{node.description}</p>
+        </div>
+      )}
+
+      {/* Producers */}
+      {node.producers && node.producers.length > 0 && (
+        <div className="px-4 py-3 border-b border-white/10 shrink-0">
+          <span className="text-white/25 text-[10px] uppercase tracking-wider block mb-1">Produced by</span>
+          <p className="text-white/55 text-xs">{node.producers.join(', ')}</p>
+        </div>
+      )}
 
       {/* Sample counts */}
       <div className="px-4 py-3 flex gap-4 border-b border-white/10 shrink-0">
@@ -113,56 +179,26 @@ export default function InfoPanel() {
         </div>
       </div>
 
-      {/* Action buttons */}
+      {/* Actions */}
       <div className="px-4 py-4 flex flex-col gap-2 shrink-0">
 
-        {/* YouTube */}
-        {isLoadingLinks ? (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-            <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white/50 rounded-full animate-spin shrink-0" />
-            <span className="text-white/30 text-sm">Loading links…</span>
-          </div>
-        ) : (
-          <>
-            {youtubeUrl ? (
-              <a
-                href={youtubeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#FF0000]/15 border border-[#FF0000]/25 text-white text-sm font-medium hover:bg-[#FF0000]/25 transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[#FF4444] shrink-0">
-                  <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8z" />
-                  <polygon fill="#1a1a1e" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02" />
-                </svg>
-                Play on YouTube
-              </a>
-            ) : !apiKeys.youtube ? (
-              <div className="px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/30 text-sm">
-                Add YouTube key in settings to get play links
-              </div>
-            ) : null}
-
-            {spotifyUrl && (
-              <a
-                href={spotifyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#1DB954]/15 border border-[#1DB954]/25 text-white text-sm font-medium hover:bg-[#1DB954]/25 transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[#1DB954] shrink-0">
-                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.52 17.28c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-.99-.12-1.11-.6-.12-.48.12-.99.6-1.11 4.38-1.32 9.78-.66 13.5 1.62.36.18.54.78.21 1.17zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.42-1.02.6-1.56.3z" />
-                </svg>
-                Open on Spotify
-              </a>
-            )}
-          </>
+        {node.geniusUrl && (
+          <a
+            href={node.geniusUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#FFFF64]/10 border border-[#FFFF64]/20 text-white text-sm font-medium hover:bg-[#FFFF64]/20 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-[#FFFF64] shrink-0">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            Read on Genius
+          </a>
         )}
 
-        {/* Expand from here */}
         <button
           onClick={handleExpandFromHere}
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#7F77DD]/15 border border-[#7F77DD]/25 text-white text-sm font-medium hover:bg-[#7F77DD]/25 transition-colors mt-1"
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#7F77DD]/15 border border-[#7F77DD]/25 text-white text-sm font-medium hover:bg-[#7F77DD]/25 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#7F77DD] shrink-0">
             <circle cx="12" cy="12" r="3" />

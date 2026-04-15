@@ -26,7 +26,7 @@ export async function getPlayUrl(artist: string, title: string): Promise<string>
 
   const fallbackUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${title}`)}`
 
-  const apiKey = store.apiKeys.youtube
+  const apiKey = import.meta.env.VITE_YOUTUBE_KEY ?? ''
   if (!apiKey) return fallbackUrl
 
   try {
@@ -55,9 +55,34 @@ export async function getPlayUrl(artist: string, title: string): Promise<string>
   }
 }
 
+// Module-level cache so repeated panel opens don't re-fetch
+const viewCountCache = new Map<string, number | null>()
+
+export async function getVideoViewCount(videoId: string): Promise<number | null> {
+  if (viewCountCache.has(videoId)) return viewCountCache.get(videoId) ?? null
+
+  const apiKey = import.meta.env.VITE_YOUTUBE_KEY ?? ''
+  if (!apiKey) return null
+
+  try {
+    const response = await axios.get<{
+      items: { statistics: { viewCount: string } }[]
+    }>(`${BASE_URL}/videos`, {
+      params: { part: 'statistics', id: videoId, key: apiKey },
+    })
+
+    const raw = response.data.items[0]?.statistics?.viewCount
+    const count = raw ? parseInt(raw, 10) : null
+    viewCountCache.set(videoId, count)
+    return count
+  } catch {
+    viewCountCache.set(videoId, null)
+    return null
+  }
+}
+
 export async function resolveVideoTitle(videoId: string): Promise<{ artist: string; song: string } | null> {
-  const store = useGraphStore.getState()
-  const apiKey = store.apiKeys.youtube
+  const apiKey = import.meta.env.VITE_YOUTUBE_KEY ?? ''
   if (!apiKey) return null
 
   try {

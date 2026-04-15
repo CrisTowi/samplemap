@@ -1,14 +1,15 @@
 import axios from 'axios'
 import { useGraphStore } from '../store/graphStore'
 import { MOCK_SEARCH_RESULTS, MOCK_SAMPLE_RELATIONSHIPS } from '../mocks/whosampled'
+import { searchGenius, getGeniusSampleRelationships } from './genius'
 import { searchMusicBrainz, getMBSampleRelationships } from './musicbrainz'
-import type { Track } from '../types'
+import type { Track, TrackMeta } from '../types'
 
 const BASE_URL = 'https://api.whosampled.com/v1'
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true'
 
 function getApiKey(): string {
-  return useGraphStore.getState().apiKeys.whosampled
+  return import.meta.env.VITE_WHOSAMPLED_KEY ?? ''
 }
 
 function mapTrack(raw: {
@@ -64,14 +65,22 @@ export async function search(query: string): Promise<Track[]> {
     return results
   }
 
-  // 3. MusicBrainz fallback
+  // 3. Genius fallback (if key configured)
+  if (import.meta.env.VITE_GENIUS_KEY) {
+    return searchGenius(query)
+  }
+
+  // 4. MusicBrainz fallback
   return searchMusicBrainz(query)
 }
 
-export async function getSampleRelationships(trackId: string): Promise<{
+export interface SampleRelationshipsResult {
   sampledIn: Track[]
   sampledFrom: Track[]
-}> {
+  trackMeta?: TrackMeta
+}
+
+export async function getSampleRelationships(trackId: string): Promise<SampleRelationshipsResult> {
   const store = useGraphStore.getState()
 
   const cached = store.cache.samples.get(trackId)
@@ -106,6 +115,11 @@ export async function getSampleRelationships(trackId: string): Promise<{
     return result
   }
 
-  // 3. MusicBrainz fallback
+  // 3. Genius fallback (if key configured) — also returns rich metadata
+  if (import.meta.env.VITE_GENIUS_KEY) {
+    return getGeniusSampleRelationships(trackId)
+  }
+
+  // 4. MusicBrainz fallback
   return getMBSampleRelationships(trackId)
 }

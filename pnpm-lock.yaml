@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@sigma/node-image':
+        specifier: ^3.0.0
+        version: 3.0.0(sigma@3.0.2(graphology-types@0.24.8))
       '@tailwindcss/vite':
         specifier: ^4.2.2
         version: 4.2.2(vite@8.0.8(jiti@2.6.1))
@@ -191,6 +194,11 @@ packages:
 
   '@rolldown/pluginutils@1.0.0-rc.7':
     resolution: {integrity: sha512-qujRfC8sFVInYSPPMLQByRh7zhwkGFS4+tyMQ83srV1qrxL4g8E2tyxVVyxd0+8QeBM1mIk9KbWxkegRr76XzA==}
+
+  '@sigma/node-image@3.0.0':
+    resolution: {integrity: sha512-i4WLNPugDY4jgQEZtNSiSVj4HHXOraciXLtlgdygeUxMVEhH8PJ/+Q1vQ9f/SlKFnZQ+7vH3HnsSDW6FD9aP+g==}
+    peerDependencies:
+      sigma: '>=3.0.0-beta.10'
 
   '@tailwindcss/node@4.2.2':
     resolution: {integrity: sha512-pXS+wJ2gZpVXqFaUEjojq7jzMpTGf8rU6ipJz5ovJV6PUGmlJ+jvIwGrzdHdQ80Sg+wmQxUFuoW1UAAwHNEdFA==}
@@ -753,6 +761,10 @@ snapshots:
   '@rolldown/pluginutils@1.0.0-rc.15': {}
 
   '@rolldown/pluginutils@1.0.0-rc.7': {}
+
+  '@sigma/node-image@3.0.0(sigma@3.0.2(graphology-types@0.24.8))':
+    dependencies:
+      sigma: 3.0.2(graphology-types@0.24.8)
 
   '@tailwindcss/node@4.2.2':
     dependencies:
