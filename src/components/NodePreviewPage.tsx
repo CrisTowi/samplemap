@@ -85,6 +85,7 @@ export default function NodePreviewPage() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-white">
+    <div className="relative mx-auto max-w-[1512px] h-full">
 
       {/* ─── Top bar ─────────────────────────────────────────────────────── */}
       <div className="absolute top-8 left-0 right-0 flex items-start justify-center">
@@ -318,6 +319,7 @@ export default function NodePreviewPage() {
           2026, Powered by Lucila and Christian
         </span>
       </div>
+    </div>
     </div>
   )
 }
