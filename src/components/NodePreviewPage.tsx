@@ -25,6 +25,18 @@ const FONT_SANS_INTER = "'Inter', sans-serif"
 // Right song  left=953px → 63%
 // Label center calc(50% + 324.5px) with translateX(-50%)
 
+function MusicPlaceholder() {
+  return (
+    <div className="size-full bg-[#fbffe5] flex items-center justify-center">
+      <svg width="40%" height="40%" viewBox="0 0 24 24" fill="none" stroke="#9ca4a4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+      </svg>
+    </div>
+  )
+}
+
 function ArrowUpRight() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -88,184 +100,86 @@ export default function NodePreviewPage() {
     <div className="relative mx-auto max-w-[1512px] h-full">
 
       {/* ─── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="absolute top-8 left-0 right-0 flex items-start justify-center">
-        {/* New search — SeeResults/Small */}
-        <button
-          onClick={handleNewSearch}
-          className={[
-            'absolute left-[44px] flex items-center justify-center px-1',
-            'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
-            'hover:font-medium hover:bg-[#fbffe5]',
-            'active:font-medium active:bg-[#f4ffc8]',
-            'transition-colors',
-          ].join(' ')}
-          style={{ fontFamily: FONT_MONO }}
-        >
-          New search
-        </button>
-
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-3 pointer-events-none">
-          <svg width="43" height="13" viewBox="0 0 43 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="6.5" cy="6.5" r="6.5" fill="#1B2211" />
-            <circle cx="23.5" cy="6.5" r="5.5" fill="#1B2211" />
-            <circle cx="38.5" cy="6.5" r="4.5" fill="#1B2211" />
-          </svg>
-          <span className="text-[14px] leading-[22px] text-[#2a2d2d] tracking-[-0.28px]" style={{ fontFamily: FONT_MONO }}>
-            Node Record
-          </span>
+      <div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-[#e8e8e4]">
+        <div className="flex items-center h-[72px] px-4 sm:px-[44px]">
+          <div className="flex-1 flex items-center">
+            <button
+              onClick={handleNewSearch}
+              className={[
+                'flex items-center justify-center px-1',
+                'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
+                'hover:font-medium hover:bg-[#fbffe5]',
+                'active:font-medium active:bg-[#f4ffc8]',
+                'transition-colors whitespace-nowrap',
+              ].join(' ')}
+              style={{ fontFamily: FONT_MONO }}
+            >
+              New search
+            </button>
+          </div>
+          <div className="flex flex-col items-center gap-2 pointer-events-none shrink-0">
+            <svg width="43" height="13" viewBox="0 0 43 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="6.5" cy="6.5" r="6.5" fill="#1B2211" />
+              <circle cx="23.5" cy="6.5" r="5.5" fill="#1B2211" />
+              <circle cx="38.5" cy="6.5" r="4.5" fill="#1B2211" />
+            </svg>
+            <span className="text-[14px] leading-[22px] text-[#2a2d2d] tracking-[-0.28px]" style={{ fontFamily: FONT_MONO }}>
+              Node Record
+            </span>
+          </div>
+          <div className="flex-1" />
         </div>
       </div>
 
-      {/* ─── Artist label — centered above the album circle ─────────────── */}
-      {/* Album center: left + 90px. In no-side mode the album is at 50%. */}
-      <div
-        className="absolute -translate-x-1/2 flex flex-col items-center"
-        style={{
-          left: showSide ? 'calc(18.2% + 90px)' : '50%',
-          top: 'calc(50% - 303px)',
-        }}
-      >
-        <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
-          Artist
-        </span>
-        <span className="text-[#2a2d2d] text-[24px] leading-[28px] tracking-[-0.48px] text-center whitespace-nowrap" style={{ fontFamily: FONT_SANS_INTER }}>
-          {rootTrack.artist}
-        </span>
-      </div>
+      {/* ─── Mobile layout (sm:hidden) ───────────────────────────────────── */}
+      {/* No skeleton, no side content — just song details centered */}
+      <div className="sm:hidden flex flex-col items-center justify-center h-full gap-6 px-6 pt-[72px] pb-[52px]">
+        {/* Album art */}
+        <div className="rounded-full overflow-hidden border border-[#1b2211] shrink-0" style={{ width: 160, height: 160 }}>
+          {rootTrack.coverArt
+            ? <img src={rootTrack.coverArt} alt={rootTrack.title} className="size-full object-cover" />
+            : <MusicPlaceholder />
+          }
+        </div>
 
-      {/* ─── Main album  180×180px circle ────────────────────────────────── */}
-      <div
-        className={`absolute rounded-full overflow-hidden border border-[#1b2211]${showSide ? '' : ' -translate-x-1/2'}`}
-        style={{
-          left: showSide ? '18.2%' : '50%',
-          top: 'calc(50% - 235px)',
-          width: '180px',
-          height: '180px',
-        }}
-      >
-        {rootTrack.coverArt
-          ? <img src={rootTrack.coverArt} alt={rootTrack.title} className="size-full object-cover" />
-          : <div className="size-full bg-[#fbffe5] flex items-center justify-center">
-                  <svg width="40%" height="40%" viewBox="0 0 24 24" fill="none" stroke="#9ca4a4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18V5l12-2v13" />
-                    <circle cx="6" cy="18" r="3" />
-                    <circle cx="18" cy="16" r="3" />
-                  </svg>
-                </div>
-        }
-      </div>
+        {/* Artist + title */}
+        <div className="flex flex-col items-center gap-1 text-center">
+          <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
+            Artist
+          </span>
+          <span className="text-[#2a2d2d] text-[24px] leading-[28px] tracking-[-0.48px]" style={{ fontFamily: FONT_SANS_INTER }}>
+            {rootTrack.artist}
+          </span>
+        </div>
 
-      {/* ─── Connecting line + right song — only when loading or a topSample exists */}
-      {(isLoading || topSample) && (
-        <>
-          {/* Connecting line  (at line y, from album right edge → song left) */}
-          <div
-            className="absolute h-px bg-[#1b2211]"
-            style={{
-              top: 'calc(50% - 145px)',
-              left: 'calc(18.2% + 180px)',
-              right: '37%',
-            }}
-          />
-
-          {/* Right song row  bottom divider AT line (line - 58px) */}
-          <div
-            className="absolute flex flex-col gap-[8px]"
-            style={{ left: '63%', top: 'calc(50% - 203px)', width: '345px' }}
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-[8px] pt-[4px] px-[8px]">
-                <div className="shrink-0 size-[42px] rounded-full bg-[#f0f0eb] animate-pulse" />
-                <div className="flex flex-1 flex-col gap-[2px]">
-                  <div className="h-[22px] bg-[#f0f0eb] rounded animate-pulse w-3/4" />
-                  <div className="h-[22px] bg-[#f0f0eb] rounded animate-pulse w-1/2" />
-                </div>
-              </div>
-            ) : topSample ? (
-              <div className="flex items-center gap-[8px] pt-[4px] px-[8px]">
-                <div className="shrink-0 size-[42px] rounded-full overflow-hidden border border-[#1b2211] relative">
-                  {topSample.coverArt
-                    ? <img src={topSample.coverArt} alt="" className="absolute inset-0 size-full object-cover" />
-                    : <div className="size-full bg-[#fbffe5] flex items-center justify-center">
-                  <svg width="40%" height="40%" viewBox="0 0 24 24" fill="none" stroke="#9ca4a4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18V5l12-2v13" />
-                    <circle cx="6" cy="18" r="3" />
-                    <circle cx="18" cy="16" r="3" />
-                  </svg>
-                </div>
-                  }
-                </div>
-                <div className="flex flex-1 flex-col gap-[2px] min-w-0 justify-center">
-                  <span className="text-[#2a2d2d] text-[18px] leading-[22px] tracking-[-0.36px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
-                    {topSample.title}
-                  </span>
-                  <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
-                    {topSample.artist}
-                  </span>
-                </div>
-                {topSample.year && (
-                  <span className="shrink-0 text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
-                    {topSample.year}
-                  </span>
-                )}
-                <button
-                  onClick={handleDiscover}
-                  className="shrink-0 size-[24px] flex items-center justify-center text-[#2a2d2d] hover:text-[#676e6f] transition-colors"
-                  aria-label="Discover graph"
-                >
-                  <ArrowUpRight />
-                </button>
-              </div>
-            ) : null}
-            <div className="w-full h-0 border-t border-[#1b2211]" />
-          </div>
-
-          {/* "popular node song" label  (line + 11px, right side) */}
-          <div
-            className="absolute -translate-x-1/2"
-            style={{ left: 'calc(50% + 324.5px)', top: 'calc(50% - 134px)' }}
-          >
-            <span
-              className="text-[#676e6f] text-[14px] leading-[18px] tracking-[-0.28px] whitespace-nowrap"
-              style={{ fontFamily: FONT_MONO }}
+        {/* Song row */}
+        <div className="w-full max-w-[345px] flex flex-col gap-2">
+          <div className="flex items-center gap-2 pt-1 px-2">
+            <div className="flex flex-1 flex-col gap-[2px] min-w-0">
+              <span className="text-[#2a2d2d] text-[18px] leading-[22px] tracking-[-0.36px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
+                {rootTrack.title}
+              </span>
+              <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
+                {genre ?? rootTrack.artist}
+              </span>
+            </div>
+            {rootTrack.year && (
+              <span className="shrink-0 text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
+                {rootTrack.year}
+              </span>
+            )}
+            <button
+              onClick={handleDiscover}
+              className="shrink-0 size-[24px] flex items-center justify-center text-[#2a2d2d] hover:text-[#676e6f] transition-colors"
+              aria-label="Discover graph"
             >
-              popular node song
-            </span>
+              <ArrowUpRight />
+            </button>
           </div>
-        </>
-      )}
+          <div className="w-full h-px bg-[#1b2211]" />
+        </div>
 
-      {/* ─── Center cluster: blurred circles + discover link  (line + 11px) */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[12px]"
-        style={{ top: 'calc(50% - 134px)' }}
-      >
-        {/* 3 blurred Album/Uncovered 28px circles */}
-        {previewTracks.length > 0 && (
-          <div className="flex gap-[9px] items-center">
-            {previewTracks.map((track) => (
-              <div
-                key={track.id}
-                className="size-[28px] rounded-full overflow-hidden border border-[#1b2211] shrink-0"
-                style={{ filter: 'blur(2px)' }}
-              >
-                {track.coverArt
-                  ? <img src={track.coverArt} alt="" className="size-full object-cover" />
-                  : <div className="size-full bg-[#fbffe5] flex items-center justify-center">
-                  <svg width="40%" height="40%" viewBox="0 0 24 24" fill="none" stroke="#9ca4a4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18V5l12-2v13" />
-                    <circle cx="6" cy="18" r="3" />
-                    <circle cx="18" cy="16" r="3" />
-                  </svg>
-                </div>
-                }
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* discover N nodes — SeeResults/Small */}
+        {/* Discover button — only shown once loading is done */}
         {!isLoading && nodeCount > 0 && (
           <button
             onClick={handleDiscover}
@@ -283,35 +197,185 @@ export default function NodePreviewPage() {
         )}
       </div>
 
-      {/* ─── Root song info row  (line + 98px) ───────────────────────────── */}
-      <div
-        className={`absolute flex flex-col gap-[8px]${showSide ? '' : ' -translate-x-1/2'}`}
-        style={{ left: showSide ? '12.8%' : '50%', top: 'calc(50% - 47px)', width: '345px' }}
-      >
-        <div className="flex items-center gap-[8px] pt-[4px] px-[8px]">
-          <div className="flex flex-1 flex-col gap-[2px] min-w-0 justify-center">
-            <span className="text-[#2a2d2d] text-[18px] leading-[22px] tracking-[-0.36px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
-              {rootTrack.title}
-            </span>
-            <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
-              {genre ?? rootTrack.artist}
-            </span>
-          </div>
-          {rootTrack.year && (
-            <span className="shrink-0 text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
-              {rootTrack.year}
-            </span>
-          )}
-          <button
-            onClick={handleDiscover}
-            className="shrink-0 size-[24px] flex items-center justify-center text-[#2a2d2d] hover:text-[#676e6f] transition-colors"
-            aria-label="Discover graph"
-          >
-            <ArrowUpRight />
-          </button>
+      {/* ─── Desktop layout (hidden sm:block) ───────────────────────────── */}
+      <div className="hidden sm:block">
+
+        {/* Artist label — centered above the album circle */}
+        <div
+          className="absolute -translate-x-1/2 flex flex-col items-center"
+          style={{
+            left: showSide ? 'calc(18.2% + 90px)' : '50%',
+            top: 'calc(50% - 303px)',
+          }}
+        >
+          <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
+            Artist
+          </span>
+          <span className="text-[#2a2d2d] text-[24px] leading-[28px] tracking-[-0.48px] text-center whitespace-nowrap" style={{ fontFamily: FONT_SANS_INTER }}>
+            {rootTrack.artist}
+          </span>
         </div>
-        <div className="w-full h-px bg-[#1b2211]" />
-      </div>
+
+        {/* Main album  180×180px circle */}
+        <div
+          className={`absolute rounded-full overflow-hidden border border-[#1b2211]${showSide ? '' : ' -translate-x-1/2'}`}
+          style={{
+            left: showSide ? '18.2%' : '50%',
+            top: 'calc(50% - 235px)',
+            width: '180px',
+            height: '180px',
+          }}
+        >
+          {rootTrack.coverArt
+            ? <img src={rootTrack.coverArt} alt={rootTrack.title} className="size-full object-cover" />
+            : <MusicPlaceholder />
+          }
+        </div>
+
+        {/* Connecting line + right song — only when loading or a topSample exists */}
+        {(isLoading || topSample) && (
+          <>
+            {/* Connecting line */}
+            <div
+              className="absolute h-px bg-[#1b2211]"
+              style={{
+                top: 'calc(50% - 145px)',
+                left: 'calc(18.2% + 180px)',
+                right: '37%',
+              }}
+            />
+
+            {/* Right song row */}
+            <div
+              className="absolute flex flex-col gap-[8px]"
+              style={{ left: '63%', top: 'calc(50% - 203px)', width: '345px' }}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-[8px] pt-[4px] px-[8px]">
+                  <div className="shrink-0 size-[42px] rounded-full bg-[#f0f0eb] animate-pulse" />
+                  <div className="flex flex-1 flex-col gap-[2px]">
+                    <div className="h-[22px] bg-[#f0f0eb] rounded animate-pulse w-3/4" />
+                    <div className="h-[22px] bg-[#f0f0eb] rounded animate-pulse w-1/2" />
+                  </div>
+                </div>
+              ) : topSample ? (
+                <div className="flex items-center gap-[8px] pt-[4px] px-[8px]">
+                  <div className="shrink-0 size-[42px] rounded-full overflow-hidden border border-[#1b2211] relative">
+                    {topSample.coverArt
+                      ? <img src={topSample.coverArt} alt="" className="absolute inset-0 size-full object-cover" />
+                      : <MusicPlaceholder />
+                    }
+                  </div>
+                  <div className="flex flex-1 flex-col gap-[2px] min-w-0 justify-center">
+                    <span className="text-[#2a2d2d] text-[18px] leading-[22px] tracking-[-0.36px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
+                      {topSample.title}
+                    </span>
+                    <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
+                      {topSample.artist}
+                    </span>
+                  </div>
+                  {topSample.year && (
+                    <span className="shrink-0 text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
+                      {topSample.year}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleDiscover}
+                    className="shrink-0 size-[24px] flex items-center justify-center text-[#2a2d2d] hover:text-[#676e6f] transition-colors"
+                    aria-label="Discover graph"
+                  >
+                    <ArrowUpRight />
+                  </button>
+                </div>
+              ) : null}
+              <div className="w-full h-0 border-t border-[#1b2211]" />
+            </div>
+
+            {/* "popular node song" label */}
+            <div
+              className="absolute -translate-x-1/2"
+              style={{ left: 'calc(50% + 324.5px)', top: 'calc(50% - 134px)' }}
+            >
+              <span
+                className="text-[#676e6f] text-[14px] leading-[18px] tracking-[-0.28px] whitespace-nowrap"
+                style={{ fontFamily: FONT_MONO }}
+              >
+                popular node song
+              </span>
+            </div>
+          </>
+        )}
+
+        {/* Center cluster: blurred circles + discover link */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[12px]"
+          style={{ top: 'calc(50% - 134px)' }}
+        >
+          {previewTracks.length > 0 && (
+            <div className="flex gap-[9px] items-center">
+              {previewTracks.map((track) => (
+                <div
+                  key={track.id}
+                  className="size-[28px] rounded-full overflow-hidden border border-[#1b2211] shrink-0"
+                  style={{ filter: 'blur(2px)' }}
+                >
+                  {track.coverArt
+                    ? <img src={track.coverArt} alt="" className="size-full object-cover" />
+                    : <MusicPlaceholder />
+                  }
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && nodeCount > 0 && (
+            <button
+              onClick={handleDiscover}
+              className={[
+                'flex items-center justify-center px-1',
+                'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
+                'hover:font-medium hover:bg-[#fbffe5]',
+                'active:font-medium active:bg-[#f4ffc8]',
+                'transition-colors',
+              ].join(' ')}
+              style={{ fontFamily: FONT_MONO }}
+            >
+              discover {nodeCount} nodes
+            </button>
+          )}
+        </div>
+
+        {/* Root song info row */}
+        <div
+          className={`absolute flex flex-col gap-[8px]${showSide ? '' : ' -translate-x-1/2'}`}
+          style={{ left: showSide ? '12.8%' : '50%', top: 'calc(50% - 47px)', width: '345px' }}
+        >
+          <div className="flex items-center gap-[8px] pt-[4px] px-[8px]">
+            <div className="flex flex-1 flex-col gap-[2px] min-w-0 justify-center">
+              <span className="text-[#2a2d2d] text-[18px] leading-[22px] tracking-[-0.36px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
+                {rootTrack.title}
+              </span>
+              <span className="text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px] truncate" style={{ fontFamily: FONT_SANS_INTER }}>
+                {genre ?? rootTrack.artist}
+              </span>
+            </div>
+            {rootTrack.year && (
+              <span className="shrink-0 text-[#676e6f] text-[14px] leading-[22px] tracking-[-0.28px]" style={{ fontFamily: FONT_SANS_INTER }}>
+                {rootTrack.year}
+              </span>
+            )}
+            <button
+              onClick={handleDiscover}
+              className="shrink-0 size-[24px] flex items-center justify-center text-[#2a2d2d] hover:text-[#676e6f] transition-colors"
+              aria-label="Discover graph"
+            >
+              <ArrowUpRight />
+            </button>
+          </div>
+          <div className="w-full h-px bg-[#1b2211]" />
+        </div>
+
+      </div>{/* end desktop */}
 
       {/* ─── Footer ───────────────────────────────────────────────────────── */}
       <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 pointer-events-none">

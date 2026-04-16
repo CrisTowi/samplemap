@@ -6,7 +6,7 @@ export default function BuildProgress() {
   if (!isBuilding) return null
 
   return (
-    <div className="absolute top-[80px] left-0 right-0 h-[1px] z-20 overflow-hidden bg-transparent">
+    <div className="absolute top-[72px] left-0 right-0 h-[1px] z-20 overflow-hidden bg-transparent">
       <div className="h-full bg-[#1b2211] animate-progress-bar" />
     </div>
   )

@@ -83,7 +83,7 @@ export default function RecenterButton() {
         'text-[#2a2d2d] text-[12px] leading-[16px] tracking-[-0.24px]',
         'hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors',
       ].join(' ')}
-      style={{ fontFamily: FONT_MONO, top: '84px' }}
+      style={{ fontFamily: FONT_MONO, top: '80px' }}
     >
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
         <circle cx="8" cy="8" r="3" />
