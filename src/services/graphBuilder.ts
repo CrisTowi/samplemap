@@ -35,19 +35,14 @@ class Semaphore {
   }
 }
 
-async function expandNode(
+async function fetchAndAddChildren(
   trackId: string,
-  currentDepth: number,
-  maxDepth: number,
-  semaphore: Semaphore,
-  visited: Set<string>
+  parentDepth: number,
+  semaphore: Semaphore
 ): Promise<void> {
   const store = useGraphStore.getState()
 
-  if (currentDepth >= maxDepth) return
   if (store.graph.nodeCount >= NODE_CAP) return
-  if (visited.has(trackId)) return
-  visited.add(trackId)
 
   store.setNodeLoading(trackId, true)
 
@@ -58,10 +53,8 @@ async function expandNode(
   } catch (error: unknown) {
     store.setNodeExpanded(trackId)
 
-    // 404: silent
     if (axios404(error)) return
 
-    // 429: retry once after 2s
     if (axios429(error)) {
       await delay(2000)
       try {
@@ -78,44 +71,65 @@ async function expandNode(
     semaphore.release()
   }
 
-  // Refresh store state after async gap
   const freshStore = useGraphStore.getState()
   const remaining = NODE_CAP - freshStore.graph.nodeCount
+  const childDepth = parentDepth + 1
+
+  // Build a fingerprint → existing nodeId map to catch same-song / different-ID duplicates
+  const fingerprints = new Map<string, string>()
+  for (const [existingId, existingNode] of freshStore.graph.nodes) {
+    const fp = `${existingNode.artist.toLowerCase().trim()}__${existingNode.title.toLowerCase().trim()}`
+    fingerprints.set(fp, existingId)
+  }
+
+  function resolveExistingId(track: Track): string | null {
+    if (freshStore.graph.nodes.has(track.id)) return track.id
+    const fp = `${track.artist.toLowerCase().trim()}__${track.title.toLowerCase().trim()}`
+    return fingerprints.get(fp) ?? null
+  }
 
   const newNodes: GraphNode[] = [
     ...relationships.sampledIn
-      .filter((track) => !freshStore.graph.nodes.has(track.id))
+      .filter((track) => resolveExistingId(track) === null)
       .map((track) => ({
         ...track,
-        depth: currentDepth + 1,
+        depth: childDepth,
         isRoot: false,
         isExpanded: false,
         isLoading: false,
+        parentId: trackId,
       })),
     ...relationships.sampledFrom
-      .filter((track) => !freshStore.graph.nodes.has(track.id))
+      .filter((track) => resolveExistingId(track) === null)
       .map((track) => ({
         ...track,
-        depth: currentDepth + 1,
+        depth: childDepth,
         isRoot: false,
         isExpanded: false,
         isLoading: false,
+        parentId: trackId,
       })),
   ].slice(0, remaining)
 
   const newEdges: SampleEdge[] = [
-    ...relationships.sampledIn.map((track) => ({
-      id: `${track.id}-->${trackId}`,
-      sourceId: track.id,
-      targetId: trackId,
-      direction: 'sampled_in' as const,
-    })),
-    ...relationships.sampledFrom.map((track) => ({
-      id: `${trackId}-->${track.id}`,
-      sourceId: trackId,
-      targetId: track.id,
-      direction: 'sampled_from' as const,
-    })),
+    ...relationships.sampledIn.map((track) => {
+      const resolvedId = resolveExistingId(track) ?? track.id
+      return {
+        id: `${resolvedId}-->${trackId}`,
+        sourceId: resolvedId,
+        targetId: trackId,
+        direction: 'sampled_in' as const,
+      }
+    }),
+    ...relationships.sampledFrom.map((track) => {
+      const resolvedId = resolveExistingId(track) ?? track.id
+      return {
+        id: `${trackId}-->${resolvedId}`,
+        sourceId: trackId,
+        targetId: resolvedId,
+        direction: 'sampled_from' as const,
+      }
+    }),
   ]
 
   useGraphStore.getState().addNodes(newNodes, newEdges)
@@ -126,51 +140,80 @@ async function expandNode(
     },
     ...relationships.trackMeta,
   })
-
-  // Recurse breadth-first
-  await Promise.all(
-    newNodes.map((node) =>
-      expandNode(node.id, currentDepth + 1, maxDepth, semaphore, visited)
-    )
-  )
 }
 
-export async function buildGraphFromRoot(track: Track, maxDepth: number): Promise<void> {
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+/**
+ * Set a new root and immediately fetch its depth-1 samples.
+ * The graph always starts with root + direct samples visible.
+ */
+export async function buildGraphFromRoot(track: Track): Promise<void> {
   const store = useGraphStore.getState()
   store.setRoot(track)
   store.setIsBuilding(true)
 
   const semaphore = new Semaphore(MAX_CONCURRENT)
-  const visited = new Set<string>()
 
   try {
-    await expandNode(track.id, 0, maxDepth, semaphore, visited)
+    await fetchAndAddChildren(track.id, 0, semaphore)
   } finally {
     useGraphStore.getState().setIsBuilding(false)
   }
 }
 
-export async function rebuildFromRoot(): Promise<void> {
+/**
+ * Expand a single node on click: fetch its children and add them to the graph.
+ */
+export async function expandNodeOnClick(trackId: string): Promise<void> {
   const store = useGraphStore.getState()
-  if (!store.graph.rootId) return
+  const node = store.graph.nodes.get(trackId)
+  if (!node || node.isExpanded || node.isLoading) return
 
-  const rootNode = store.graph.nodes.get(store.graph.rootId)
-  if (!rootNode) return
-
-  const maxDepth = store.graph.maxDepth
-  store.resetGraph()
-  store.setRoot(rootNode)
-  store.setMaxDepth(maxDepth)
   store.setIsBuilding(true)
-
   const semaphore = new Semaphore(MAX_CONCURRENT)
-  const visited = new Set<string>()
 
   try {
-    await expandNode(rootNode.id, 0, maxDepth, semaphore, visited)
+    await fetchAndAddChildren(trackId, node.depth, semaphore)
   } finally {
     useGraphStore.getState().setIsBuilding(false)
   }
+}
+
+/**
+ * Collapse a node: remove all its descendants (tracked via parentId) and
+ * mark the node itself as unexpanded.
+ */
+export function collapseNode(trackId: string): void {
+  const store = useGraphStore.getState()
+
+  // BFS over parentId links to collect all descendants
+  const visited = new Set<string>([trackId])
+  const toRemove: string[] = []
+  const queue: string[] = [trackId]
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!
+    for (const [nodeId, node] of store.graph.nodes) {
+      if (node.parentId === currentId && !visited.has(nodeId)) {
+        visited.add(nodeId)
+        toRemove.push(nodeId)
+        queue.push(nodeId)
+      }
+    }
+  }
+
+  if (toRemove.length > 0) {
+    store.removeNodes(toRemove)
+  }
+
+  // Mark the collapsed node as unexpanded
+  useGraphStore.setState((state) => {
+    const nodes = new Map(state.graph.nodes)
+    const node = nodes.get(trackId)
+    if (node) nodes.set(trackId, { ...node, isExpanded: false, isLoading: false })
+    return { graph: { ...state.graph, nodes } }
+  })
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

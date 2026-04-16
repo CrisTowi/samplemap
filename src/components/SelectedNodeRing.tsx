@@ -10,12 +10,12 @@ interface RingPosition {
 }
 
 const NODE_COLORS: Record<number, string> = {
-  0: '#7F77DD',
+  0: '#1b2211',
   1: '#1D9E75',
 }
 
 function getNodeColor(depth: number): string {
-  return NODE_COLORS[depth] ?? '#888780'
+  return NODE_COLORS[depth] ?? '#9ca4a4'
 }
 
 export default function SelectedNodeRing() {

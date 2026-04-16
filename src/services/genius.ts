@@ -23,6 +23,7 @@ interface GeniusSong {
   release_date_for_display?: string
   album?: { name: string }
   song_art_image_thumbnail_url?: string
+  primary_tag?: string
 }
 
 interface GeniusSongRelationship {
@@ -60,6 +61,7 @@ function mapSong(song: GeniusSong): Track {
     artist: song.primary_artist.name,
     album: song.album?.name,
     year: yearMatch ? parseInt(yearMatch[0]) : undefined,
+    genre: song.primary_tag,
     coverArt: song.song_art_image_thumbnail_url,
     sampleCount: { sampledIn: 0, sampledFrom: 0 },
   }
@@ -83,6 +85,7 @@ function extractMeta(song: GeniusSongFull, sampledIn: Track[], sampledFrom: Trac
     producers: (song.producer_artists ?? []).map((artist) => artist.name).filter(Boolean),
     featuredArtists: (song.featured_artists ?? []).map((artist) => artist.name).filter(Boolean),
     description,
+    genre: song.primary_tag,
     pageviews: song.stats?.pageviews,
     sampleCount: { sampledIn: sampledIn.length, sampledFrom: sampledFrom.length },
   }

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { EDGE_COLORS } from './graphHelpers'
 
+const FONT_MONO = "'IBM Plex Mono', monospace"
+
 const SIZE_STEPS = [
   { r: 5, label: 'niche' },
   { r: 9, label: '' },
@@ -8,9 +10,9 @@ const SIZE_STEPS = [
 ]
 
 const COLOR_STEPS = [
-  { color: '#7F77DD', label: 'root' },
+  { color: '#1b2211', label: 'root' },
   { color: '#1D9E75', label: 'depth 1' },
-  { color: '#888780', label: 'depth 2+' },
+  { color: '#9ca4a4', label: 'depth 2+' },
 ]
 
 const EDGE_STEPS = [
@@ -27,13 +29,16 @@ export default function GraphLegend() {
   return (
     <div className="relative flex flex-col items-stretch min-w-[168px]">
 
-      {/* Expanded body — grows upward from the header */}
+      {/* Expanded body — grows upward */}
       {expanded && (
-        <div className="absolute bottom-full mb-2 left-0 right-0 flex flex-col gap-3 bg-black/50 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3">
+        <div className="absolute bottom-full mb-2 left-0 right-0 flex flex-col gap-3 bg-white border border-[#1b2211] rounded-xl px-4 py-3">
 
           {/* Node size */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-white/40 text-[10px] font-semibold uppercase tracking-widest">
+            <span
+              className="text-[#9ca4a4] text-[10px] uppercase tracking-wider"
+              style={{ fontFamily: FONT_MONO }}
+            >
               Node size
             </span>
             <div className="flex items-center gap-2">
@@ -41,23 +46,26 @@ export default function GraphLegend() {
                 {SIZE_STEPS.map((step, index) => {
                   const cx = index === 0 ? 6 : index === 1 ? 24 : 48
                   return (
-                    <circle key={index} cx={cx} cy={CANVAS_HEIGHT / 2} r={step.r} fill="#888780" />
+                    <circle key={index} cx={cx} cy={CANVAS_HEIGHT / 2} r={step.r} fill="#9ca4a4" />
                   )
                 })}
-                <text x="6"  y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">niche</text>
-                <text x="48" y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">popular</text>
+                <text x="6"  y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="#9ca4a4">niche</text>
+                <text x="48" y={CANVAS_HEIGHT - 1} textAnchor="middle" fontSize="7" fill="#9ca4a4">popular</text>
               </svg>
-              <span className="text-white/40 text-[10px] leading-tight">
+              <span className="text-[#9ca4a4] text-[10px] leading-tight" style={{ fontFamily: FONT_MONO }}>
                 = Genius<br />views
               </span>
             </div>
           </div>
 
-          <div className="border-t border-white/10" />
+          <div className="border-t border-[#1b2211]" />
 
           {/* Node color */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-white/40 text-[10px] font-semibold uppercase tracking-widest">
+            <span
+              className="text-[#9ca4a4] text-[10px] uppercase tracking-wider"
+              style={{ fontFamily: FONT_MONO }}
+            >
               Node color
             </span>
             <div className="flex flex-col gap-1">
@@ -66,17 +74,20 @@ export default function GraphLegend() {
                   <svg width="10" height="10" viewBox="0 0 10 10">
                     <circle cx="5" cy="5" r="4" fill={step.color} />
                   </svg>
-                  <span className="text-white/40 text-[10px]">{step.label}</span>
+                  <span className="text-[#676e6f] text-[10px]" style={{ fontFamily: FONT_MONO }}>{step.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="border-t border-white/10" />
+          <div className="border-t border-[#1b2211]" />
 
           {/* Edge direction */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-white/40 text-[10px] font-semibold uppercase tracking-widest">
+            <span
+              className="text-[#9ca4a4] text-[10px] uppercase tracking-wider"
+              style={{ fontFamily: FONT_MONO }}
+            >
               Edge (on hover)
             </span>
             <div className="flex flex-col gap-1">
@@ -90,7 +101,7 @@ export default function GraphLegend() {
                     </defs>
                     <line x1="2" y1="5" x2="18" y2="5" stroke={step.color} strokeWidth="2" markerEnd={`url(#arrow-${step.label})`} />
                   </svg>
-                  <span className="text-white/40 text-[10px]">{step.label}</span>
+                  <span className="text-[#676e6f] text-[10px]" style={{ fontFamily: FONT_MONO }}>{step.label}</span>
                 </div>
               ))}
             </div>
@@ -99,13 +110,18 @@ export default function GraphLegend() {
         </div>
       )}
 
-      {/* Header — always same height as DepthSlider */}
+      {/* Toggle button */}
       <button
         onClick={() => setExpanded((previous) => !previous)}
-        className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 hover:bg-white/5 transition-colors"
+        className="flex items-center justify-between gap-3 bg-white border border-[#1b2211] rounded-xl px-4 py-3 hover:bg-[#fbffe5] transition-colors"
         aria-label={expanded ? 'Collapse legend' : 'Expand legend'}
       >
-        <span className="text-white/50 text-xs font-medium uppercase tracking-wider">Legend</span>
+        <span
+          className="text-[#676e6f] text-[11px] uppercase tracking-wider"
+          style={{ fontFamily: FONT_MONO }}
+        >
+          Legend
+        </span>
         <svg
           width="12"
           height="12"
@@ -115,7 +131,7 @@ export default function GraphLegend() {
           strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`text-white/30 transition-transform duration-200 ${expanded ? 'rotate-180' : 'rotate-0'}`}
+          className={`text-[#9ca4a4] transition-transform duration-200 ${expanded ? 'rotate-180' : 'rotate-0'}`}
         >
           <polyline points="2,8 6,4 10,8" />
         </svg>

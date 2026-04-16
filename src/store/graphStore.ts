@@ -86,6 +86,21 @@ export const useGraphStore = create<AppStore>((set) => ({
     })
   },
 
+  removeNodes: (nodeIds: string[]) => {
+    const toRemove = new Set(nodeIds)
+    set((state) => {
+      const nodes = new Map(state.graph.nodes)
+      const edges = new Map(state.graph.edges)
+      for (const id of toRemove) nodes.delete(id)
+      for (const [edgeId, edge] of edges) {
+        if (toRemove.has(edge.sourceId) || toRemove.has(edge.targetId)) {
+          edges.delete(edgeId)
+        }
+      }
+      return { graph: { ...state.graph, nodes, edges, nodeCount: nodes.size } }
+    })
+  },
+
   setNodeLoading: (id: string, loading: boolean) => {
     set((state) => {
       const nodes = new Map(state.graph.nodes)
@@ -133,8 +148,14 @@ export const useGraphStore = create<AppStore>((set) => ({
     })
   },
 
+  previewTrack: null,
+  setPreviewTrack: (track) => set({ previewTrack: track }),
+
   selectedNodeId: null,
   setSelectedNode: (id: string | null) => set({ selectedNodeId: id }),
+
+  layoutMode: 'tree' as const,
+  setLayoutMode: (mode: 'tree' | 'radial') => set({ layoutMode: mode }),
 
   isBuilding: false,
   setIsBuilding: (value: boolean) => set({ isBuilding: value }),
@@ -146,5 +167,11 @@ export const useGraphStore = create<AppStore>((set) => ({
   },
   dismissToast: (id: string) =>
     set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
+
+  isPanelMinimized: false,
+  setIsPanelMinimized: (value) => set({ isPanelMinimized: value }),
+
+  pendingNodeId: null as string | null,
+  setPendingNodeId: (id) => set({ pendingNodeId: id }),
 
 }))

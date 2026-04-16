@@ -18,14 +18,13 @@ export default function SearchBar() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const maxDepth = useGraphStore((state) => state.graph.maxDepth)
   const addToast = useGraphStore((state) => state.addToast)
 
   const handleSelect = async (track: Track) => {
     setQuery(`${track.artist} – ${track.title}`)
     setIsOpen(false)
     setResults([])
-    await buildGraphFromRoot(track, maxDepth)
+    await buildGraphFromRoot(track)
   }
 
   const resolveAndSearch = async (searchQuery: string) => {
