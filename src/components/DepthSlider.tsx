@@ -1,6 +1,7 @@
 import { useGraphStore } from '../store/graphStore'
-import { rebuildFromRoot } from '../services/graphBuilder'
+// DepthSlider is no longer used — depth is now controlled interactively per node.
 
+const FONT_MONO = "'IBM Plex Mono', monospace"
 const DEPTH_OPTIONS = [1, 2, 3]
 
 export default function DepthSlider() {
@@ -14,22 +15,29 @@ export default function DepthSlider() {
   const handleSelect = async (depth: number) => {
     if (depth === maxDepth || isBuilding) return
     setMaxDepth(depth)
-    await rebuildFromRoot()
   }
 
   return (
-    <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3">
-      <span className="text-white/50 text-xs font-medium uppercase tracking-wider mr-1">Depth</span>
+    <div className="flex items-center gap-2 bg-white border border-[#1b2211] rounded-xl px-4 py-3">
+      <span
+        className="text-[#9ca4a4] text-[11px] leading-[16px] uppercase tracking-wider mr-1"
+        style={{ fontFamily: FONT_MONO }}
+      >
+        Depth
+      </span>
       {DEPTH_OPTIONS.map((depth) => (
         <button
           key={depth}
           onClick={() => handleSelect(depth)}
           disabled={isBuilding}
-          className={`w-6 rounded-md text-xs font-semibold transition-colors ${
+          className={[
+            'w-6 rounded-md text-xs transition-colors',
             depth === maxDepth
-              ? 'bg-[#7F77DD] text-white'
-              : 'text-white/40 hover:text-white/70 hover:bg-white/10'
-          } disabled:opacity-40 disabled:cursor-not-allowed`}
+              ? 'bg-[#1b2211] text-white font-semibold'
+              : 'text-[#676e6f] hover:text-[#2a2d2d] hover:bg-[#fbffe5]',
+            'disabled:opacity-40 disabled:cursor-not-allowed',
+          ].join(' ')}
+          style={{ fontFamily: FONT_MONO }}
         >
           {depth}
         </button>

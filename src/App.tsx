@@ -1,39 +1,137 @@
 import GraphCanvas from './components/GraphCanvas'
-import SearchBar from './components/SearchBar'
+import SearchPage from './components/SearchPage'
+import NodePreviewPage from './components/NodePreviewPage'
 import InfoPanel from './components/InfoPanel'
-import DepthSlider from './components/DepthSlider'
-import GraphLegend from './components/GraphLegend'
 import ToastContainer from './components/ToastContainer'
 import BuildProgress from './components/BuildProgress'
-import BackgroundGraph from './components/BackgroundGraph'
 import SelectedNodeRing from './components/SelectedNodeRing'
+import RecenterButton from './components/RecenterButton'
 import { useGraphStore } from './store/graphStore'
 import { runResetLayout } from './components/graphHelpers'
+
+const LAYOUT_LABELS = { tree: 'Tree', radial: 'Radial' } as const
+
+const FONT_MONO = "'IBM Plex Mono', monospace"
 
 export default function App() {
   const rootId = useGraphStore((state) => state.graph.rootId)
   const isCapped = useGraphStore((state) => state.graph.isCapped)
   const resetGraph = useGraphStore((state) => state.resetGraph)
-  const selectedNodeId = useGraphStore((state) => state.selectedNodeId)
+  const setPreviewTrack = useGraphStore((state) => state.setPreviewTrack)
+  const previewTrack = useGraphStore((state) => state.previewTrack)
+  const layoutMode = useGraphStore((state) => state.layoutMode)
+  const setLayoutMode = useGraphStore((state) => state.setLayoutMode)
+
+  // Search entrypoint — full-page light-themed search experience
+  if (!rootId && !previewTrack) {
+    return (
+      <>
+        <SearchPage />
+        <ToastContainer />
+      </>
+    )
+  }
+
+  // Node preview — intermediate state between search and full graph
+  if (!rootId && previewTrack) {
+    return (
+      <>
+        <NodePreviewPage />
+        <ToastContainer />
+      </>
+    )
+  }
+
+  const handleNewSearch = () => {
+    resetGraph()
+    setPreviewTrack(null)
+  }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#1a1a1e]">
+    <div className="relative w-screen h-screen overflow-hidden bg-white">
       {/* Full-screen graph canvas */}
       <GraphCanvas />
 
       {/* Pulsing ring overlay for selected node */}
       <SelectedNodeRing />
 
-      {/* Top progress bar */}
+      {/* Top bar — matches SearchPage / NodePreviewPage */}
+      <div className="absolute top-8 left-0 right-0 flex items-start justify-center z-10">
+        {/* New search */}
+        <button
+          onClick={handleNewSearch}
+          className={[
+            'absolute left-[44px] flex items-center justify-center px-1',
+            'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
+            'hover:font-medium hover:bg-[#fbffe5]',
+            'active:font-medium active:bg-[#f4ffc8]',
+            'transition-colors',
+          ].join(' ')}
+          style={{ fontFamily: FONT_MONO }}
+        >
+          New search
+        </button>
+
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3 pointer-events-none">
+          <svg width="43" height="13" viewBox="0 0 43 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="6.5" cy="6.5" r="6.5" fill="#1B2211" />
+            <circle cx="23.5" cy="6.5" r="5.5" fill="#1B2211" />
+            <circle cx="38.5" cy="6.5" r="4.5" fill="#1B2211" />
+          </svg>
+          <span className="text-[14px] leading-[22px] text-[#2a2d2d] tracking-[-0.28px]" style={{ fontFamily: FONT_MONO }}>
+            Node Record
+          </span>
+        </div>
+
+        {/* Layout controls */}
+        <div className="absolute right-[44px] flex items-center gap-4">
+          {/* Tree / Radial toggle */}
+          <div className="flex items-center gap-1 bg-[#f4f4f0] rounded-lg p-0.5">
+            {(['tree', 'radial'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setLayoutMode(mode)}
+                className={[
+                  'px-2 py-0.5 rounded-md text-[12px] leading-[18px] tracking-[-0.24px] transition-colors',
+                  layoutMode === mode
+                    ? 'bg-white text-[#1b2211] font-medium shadow-sm'
+                    : 'text-[#676e6f] hover:text-[#2a2d2d]',
+                ].join(' ')}
+                style={{ fontFamily: FONT_MONO }}
+              >
+                {LAYOUT_LABELS[mode]}
+              </button>
+            ))}
+          </div>
+
+          {/* Reset layout */}
+          <button
+            onClick={runResetLayout}
+            className={[
+              'flex items-center justify-center px-1',
+              'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
+              'hover:font-medium hover:bg-[#fbffe5]',
+              'active:font-medium active:bg-[#f4ffc8]',
+              'transition-colors',
+            ].join(' ')}
+            style={{ fontFamily: FONT_MONO }}
+          >
+            Reset layout
+          </button>
+        </div>
+      </div>
+
+      {/* Top progress bar — sits just below the header */}
       <BuildProgress />
 
       {/* Node cap banner */}
       {isCapped && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-yellow-900/80 border border-yellow-500/40 rounded-xl px-4 py-2.5 text-yellow-200 text-sm backdrop-blur-sm max-w-[90vw]">
-          <span>Graph capped at 150 nodes. Click any node and use &ldquo;Expand from here&rdquo; to explore a sub-graph.</span>
+        <div className="absolute top-[88px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-2.5 text-yellow-800 text-sm max-w-[90vw]">
+          <span>Graph capped at 150 nodes. Click any node and use &ldquo;Expand from here&rdquo; to explore further.</span>
           <button
             onClick={() => resetGraph()}
-            className="text-yellow-400 hover:text-yellow-100 text-lg leading-none shrink-0"
+            className="text-yellow-600 hover:text-yellow-900 text-lg leading-none shrink-0"
             aria-label="Dismiss"
           >
             ×
@@ -41,72 +139,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Top bar */}
-      <header className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/40 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-md bg-[#7F77DD] flex items-center justify-center text-white font-bold text-sm select-none">
-            S
-          </div>
-          <span className="text-white font-semibold text-sm tracking-wide hidden sm:block">SampleMap</span>
-        </div>
+      {/* Recenter button — appears when root node is off-screen */}
+      <RecenterButton />
 
-        <SearchBar />
-
-        {rootId && (
-          <button
-            onClick={runResetLayout}
-            className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-            title="Reset layout"
-            aria-label="Reset graph layout"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-          </button>
-        )}
-      </header>
-
-      {/* Empty state */}
-      {!rootId && (
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <BackgroundGraph />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className="text-white/20 text-sm mt-24 text-center px-4">
-              Try: &ldquo;Amen Brother&rdquo;, &ldquo;Think (Lyn Collins)&rdquo;, &ldquo;Funky Drummer&rdquo;
-              <br className="sm:hidden" />
-              <span className="hidden sm:inline"> · </span>
-              or paste a YouTube / Spotify URL
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop: bottom-left depth slider + legend */}
-      <div className="hidden sm:flex absolute bottom-6 left-6 z-10 items-end gap-3">
-        <DepthSlider />
-        {rootId && <GraphLegend />}
-      </div>
-
-      {/* Mobile: bottom bar with depth slider */}
-      {rootId && (
-        <div className="sm:hidden absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-4 px-4 py-3 bg-black/60 backdrop-blur-sm border-t border-white/10">
-          <DepthSlider />
-        </div>
-      )}
-
-      {/* Desktop: right info panel */}
-      <div className="hidden sm:block absolute top-14 right-0 bottom-0 z-10">
-        <InfoPanel />
-      </div>
-
-      {/* Mobile: bottom drawer info panel */}
-      {selectedNodeId && (
-        <div className="sm:hidden absolute bottom-0 left-0 right-0 z-20 max-h-[65vh] overflow-y-auto bg-[#1a1a20]/95 backdrop-blur-md border-t border-white/10 rounded-t-2xl">
-          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1" />
-          <InfoPanel />
-        </div>
-      )}
+      {/* Bottom sheet track panel (self-positioned, all screen sizes) */}
+      <InfoPanel />
 
       {/* Toasts */}
       <ToastContainer />

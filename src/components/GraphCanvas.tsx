@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
-import type { SampleEdge } from '../types'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import { NodeImageProgram } from '@sigma/node-image'
+import { EdgeCurvedArrowProgram } from '@sigma/edge-curve'
 import { useGraphStore } from '../store/graphStore'
+import { expandNodeOnClick, collapseNode } from '../services/graphBuilder'
 import {
   graphRefs,
-  runFA2Animated,
+  applyLayout,
+  animateLayoutTransition,
   animateFadeIn,
   applyHoverHighlight,
   clearHoverHighlight,
@@ -16,9 +18,9 @@ import {
 } from './graphHelpers'
 
 const NODE_COLORS = {
-  root: '#7F77DD',
+  root: '#1b2211',
   depth1: '#1D9E75',
-  depthN: '#888780',
+  depthN: '#9ca4a4',
 }
 
 
@@ -34,39 +36,6 @@ function getNodeColor(depth: number): string {
   return NODE_COLORS.depthN
 }
 
-const SPAWN_JITTER = 0.3
-
-/**
- * For a newly added node, find the position of an already-placed neighbor so
- * the node can spawn adjacent to it instead of at a random canvas offset.
- */
-function findParentPosition(
-  graphology: Graph,
-  nodeId: string,
-  edges: Map<string, SampleEdge>
-): { x: number; y: number } {
-  for (const edge of edges.values()) {
-    const neighborId =
-      edge.targetId === nodeId ? edge.sourceId :
-      edge.sourceId === nodeId ? edge.targetId :
-      null
-
-    if (neighborId && graphology.hasNode(neighborId)) {
-      const parentX = graphology.getNodeAttribute(neighborId, 'x') as number
-      const parentY = graphology.getNodeAttribute(neighborId, 'y') as number
-      return {
-        x: parentX + (Math.random() - 0.5) * SPAWN_JITTER,
-        y: parentY + (Math.random() - 0.5) * SPAWN_JITTER,
-      }
-    }
-  }
-  // Fallback: no connected neighbor found yet, spawn near center
-  return {
-    x: (Math.random() - 0.5) * SPAWN_JITTER,
-    y: (Math.random() - 0.5) * SPAWN_JITTER,
-  }
-}
-
 export default function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const sigmaRef = useRef<Sigma | null>(null)
@@ -75,6 +44,7 @@ export default function GraphCanvas() {
   const graphState = useGraphStore((state) => state.graph)
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode)
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId)
+  const layoutMode = useGraphStore((state) => state.layoutMode)
 
   // Initialize Sigma once on mount
   useEffect(() => {
@@ -86,9 +56,12 @@ export default function GraphCanvas() {
 
     const sigma = new Sigma(graphology, containerRef.current, {
       renderEdgeLabels: false,
-      defaultEdgeColor: '#333331',
-      defaultEdgeType: 'arrow',
-      labelColor: { color: '#d4d4d2' },
+      defaultEdgeColor: '#d8d8d6',
+      defaultEdgeType: 'curvedArrow',
+      edgeProgramClasses: {
+        curvedArrow: EdgeCurvedArrowProgram,
+      },
+      labelColor: { color: '#2a2d2d' },
       labelSize: 11,
       minCameraRatio: 0.1,
       maxCameraRatio: 10,
@@ -101,8 +74,49 @@ export default function GraphCanvas() {
     sigmaRef.current = sigma
     graphRefs.sigma = sigma
 
-    sigma.on('clickNode', ({ node }) => setSelectedNode(node))
-    sigma.on('clickStage', () => setSelectedNode(null))
+    sigma.on('clickNode', ({ node }) => {
+      const state = useGraphStore.getState()
+      const graphNode = state.graph.nodes.get(node)
+      if (!graphNode) return
+
+      // Don't process clicks while the graph is already loading
+      if (state.isBuilding || graphNode.isLoading) return
+
+      // Panel is minimized (audio playing) — re-clicking the same node just expands
+      if (state.isPanelMinimized && node === state.selectedNodeId) {
+        state.setIsPanelMinimized(false)
+        return
+      }
+
+      // Panel is minimized and user clicks a different node — show interrupt alert
+      if (state.isPanelMinimized && node !== state.selectedNodeId) {
+        state.setPendingNodeId(node)
+        return
+      }
+
+      setSelectedNode(node)
+
+      // Root: InfoPanel only — it's always expanded on load
+      if (graphNode.isRoot) return
+
+      if (graphNode.isExpanded) {
+        collapseNode(node)
+      } else {
+        void (async () => {
+          try {
+            await expandNodeOnClick(node)
+          } catch {
+            // toast already shown by expandNodeOnClick internals
+          }
+        })()
+      }
+    })
+
+    sigma.on('clickStage', () => {
+      setSelectedNode(null)
+      useGraphStore.getState().setIsPanelMinimized(false)
+      useGraphStore.getState().setPendingNodeId(null)
+    })
 
     sigma.on('enterNode', ({ node }) => {
       applyHoverHighlight(graphology, sigma, node)
@@ -123,6 +137,7 @@ export default function GraphCanvas() {
       graphologyRef.current = null
       graphRefs.sigma = null
       graphRefs.graphology = null
+      graphRefs.rootId = null
     }
   }, [setSelectedNode])
 
@@ -135,6 +150,9 @@ export default function GraphCanvas() {
     const previousNodeCount = graphology.order
     const rootId = useGraphStore.getState().graph.rootId
 
+    // Keep graphRefs.rootId in sync so runResetLayout can use it
+    graphRefs.rootId = rootId
+
     // Remove stale nodes
     for (const nodeId of graphology.nodes()) {
       if (!graphState.nodes.has(nodeId)) graphology.dropNode(nodeId)
@@ -146,26 +164,24 @@ export default function GraphCanvas() {
       const size = computeNodeSize(node.pageviews)
 
       if (!graphology.hasNode(nodeId)) {
-        // Spawn near the parent node (if found) so FA2 doesn't have to drag it across the canvas
-        const spawnPos = isRoot
-          ? { x: 0, y: 0 }
-          : findParentPosition(graphology, nodeId, graphState.edges)
-
         graphology.addNode(nodeId, {
           label: `${node.artist} – ${node.title}`,
           size,
+          baseSize: size,
           color: getNodeColor(node.depth),
-          x: spawnPos.x,
-          y: spawnPos.y,
+          // Position will be set by computeTreeLayout; start at origin to avoid flash
+          x: 0,
+          y: 0,
           opacity: 0,
-          // Image: use cover art if available, otherwise plain circle
           type: node.coverArt ? 'image' : 'circle',
           image: node.coverArt ?? null,
+          // Store parentId on the graphology node for layout computation
+          parentId: isRoot ? undefined : node.parentId,
+          depth: node.depth,
         })
       } else {
         graphology.setNodeAttribute(nodeId, 'color', getNodeColor(node.depth))
         graphology.setNodeAttribute(nodeId, 'size', size)
-        // Update image if it became available after expansion
         if (node.coverArt && graphology.getNodeAttribute(nodeId, 'type') !== 'image') {
           graphology.setNodeAttribute(nodeId, 'type', 'image')
           graphology.setNodeAttribute(nodeId, 'image', node.coverArt)
@@ -187,8 +203,10 @@ export default function GraphCanvas() {
     }
 
     const nodesAdded = graphology.order > previousNodeCount
-    if (nodesAdded) animateFadeIn(graphology, sigma)
-    if (nodesAdded && graphology.order > 1) runFA2Animated(graphology, sigma)
+    if (nodesAdded && rootId) {
+      applyLayout(graphology, rootId)
+      animateFadeIn(graphology, sigma)
+    }
 
     // On first load: center camera on the root node
     if (previousNodeCount === 0 && graphology.order > 0) {
@@ -197,6 +215,17 @@ export default function GraphCanvas() {
 
     sigma.refresh()
   }, [graphState])
+
+  // Animate layout transition when the user switches between tree and radial modes
+  useEffect(() => {
+    const graphology = graphologyRef.current
+    const sigma = sigmaRef.current
+    const rootId = useGraphStore.getState().graph.rootId
+    if (!graphology || !sigma || !rootId || graphology.order === 0) return
+
+    animateLayoutTransition(graphology, sigma, rootId)
+    sigma.getCamera().animatedReset({ duration: 600 })
+  }, [layoutMode])
 
   // Selected node highlight ring
   useEffect(() => {
@@ -214,7 +243,7 @@ export default function GraphCanvas() {
     <div
       ref={containerRef}
       className="absolute inset-0 w-full h-full"
-      style={{ background: '#1a1a1e' }}
+      style={{ background: '#ffffff' }}
     />
   )
 }

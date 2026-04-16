@@ -1,0 +1,98 @@
+import { useEffect, useState, useCallback } from 'react'
+import { useGraphStore } from '../store/graphStore'
+import { graphRefs } from './graphHelpers'
+
+const FONT_MONO = "'IBM Plex Mono', monospace"
+// Pixels of margin — node must be this far inside the viewport to be considered visible
+const VISIBILITY_MARGIN = 40
+
+export default function RecenterButton() {
+  const rootId = useGraphStore((state) => state.graph.rootId)
+  const [isOffScreen, setIsOffScreen] = useState(false)
+
+  const checkVisibility = useCallback(() => {
+    const { sigma, graphology } = graphRefs
+    if (!sigma || !graphology || !rootId || !graphology.hasNode(rootId)) return
+
+    const nodeX = graphology.getNodeAttribute(rootId, 'x') as number
+    const nodeY = graphology.getNodeAttribute(rootId, 'y') as number
+    const viewport = sigma.graphToViewport({ x: nodeX, y: nodeY })
+    const container = sigma.getContainer()
+    const { width, height } = container.getBoundingClientRect()
+
+    const visible =
+      viewport.x >= VISIBILITY_MARGIN &&
+      viewport.x <= width - VISIBILITY_MARGIN &&
+      viewport.y >= VISIBILITY_MARGIN &&
+      viewport.y <= height - VISIBILITY_MARGIN
+
+    setIsOffScreen(!visible)
+  }, [rootId])
+
+  useEffect(() => {
+    if (!rootId) {
+      setIsOffScreen(false)
+      return
+    }
+
+    // Wait one frame for sigma to be ready, then attach camera listener
+    const rafId = requestAnimationFrame(() => {
+      const { sigma } = graphRefs
+      if (!sigma) return
+
+      const camera = sigma.getCamera()
+      camera.on('updated', checkVisibility)
+      checkVisibility()
+    })
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      const { sigma } = graphRefs
+      if (sigma) sigma.getCamera().off('updated', checkVisibility)
+    }
+  }, [rootId, checkVisibility])
+
+  const handleRecenter = () => {
+    const { sigma, graphology } = graphRefs
+    if (!sigma || !graphology || !rootId || !graphology.hasNode(rootId)) return
+
+    const nodeX = graphology.getNodeAttribute(rootId, 'x') as number
+    const nodeY = graphology.getNodeAttribute(rootId, 'y') as number
+
+    // graphToViewport gives the node's current screen position.
+    // viewportToFramedGraph converts that to the camera's internal coordinate space.
+    // Setting the camera to those framed coords centers the viewport on the node.
+    const nodeViewport = sigma.graphToViewport({ x: nodeX, y: nodeY })
+    const framedTarget = sigma.viewportToFramedGraph(nodeViewport)
+
+    sigma.getCamera().animate(
+      { x: framedTarget.x, y: framedTarget.y },
+      { duration: 500, easing: 'quadraticInOut' }
+    )
+  }
+
+  if (!isOffScreen) return null
+
+  return (
+    <button
+      onClick={handleRecenter}
+      className={[
+        'fixed left-1/2 -translate-x-1/2 z-[25]',
+        'flex items-center gap-1.5 px-3 py-1.5',
+        'bg-white border border-[#1b2211] rounded-full shadow-sm',
+        'text-[#2a2d2d] text-[12px] leading-[16px] tracking-[-0.24px]',
+        'hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors',
+      ].join(' ')}
+      style={{ fontFamily: FONT_MONO, bottom: '72px' }}
+    >
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <circle cx="8" cy="8" r="3" />
+        <line x1="8" y1="1" x2="8" y2="4" />
+        <line x1="8" y1="12" x2="8" y2="15" />
+        <line x1="1" y1="8" x2="4" y2="8" />
+        <line x1="12" y1="8" x2="15" y2="8" />
+      </svg>
+      Recenter
+    </button>
+  )
+}

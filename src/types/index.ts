@@ -4,6 +4,7 @@ export interface Track {
   artist: string;
   album?: string;
   year?: number;
+  genre?: string;
   coverArt?: string;
   youtubeUrl?: string;
   spotifyUrl?: string;
@@ -31,6 +32,7 @@ export interface GraphNode extends Track {
   isRoot: boolean;
   isExpanded: boolean;
   isLoading: boolean;
+  parentId?: string;
 }
 
 export interface GraphState {
@@ -49,6 +51,7 @@ export interface TrackMeta {
   producers?: string[];
   featuredArtists?: string[];
   description?: string;
+  genre?: string;
   pageviews?: number;
   sampleCount: { sampledIn: number; sampledFrom: number };
 }
@@ -75,6 +78,7 @@ export interface AppStore {
   graph: GraphState;
   setRoot: (track: Track) => void;
   addNodes: (nodes: GraphNode[], edges: SampleEdge[]) => void;
+  removeNodes: (nodeIds: string[]) => void;
   setNodeLoading: (id: string, loading: boolean) => void;
   setNodeExpanded: (id: string, update?: Partial<Pick<Track, 'sampleCount' | 'youtubeUrl' | 'spotifyUrl' | 'geniusUrl' | 'producers' | 'featuredArtists' | 'description' | 'pageviews'>>) => void;
   setMaxDepth: (depth: number) => void;
@@ -87,8 +91,14 @@ export interface AppStore {
     value: ApiCache[K] extends Map<string, infer V> ? V : never
   ) => void;
 
+  previewTrack: Track | null;
+  setPreviewTrack: (track: Track | null) => void;
+
   selectedNodeId: string | null;
   setSelectedNode: (id: string | null) => void;
+
+  layoutMode: 'tree' | 'radial';
+  setLayoutMode: (mode: 'tree' | 'radial') => void;
 
   isBuilding: boolean;
   setIsBuilding: (value: boolean) => void;
@@ -96,4 +106,9 @@ export interface AppStore {
   toasts: Toast[];
   addToast: (message: string) => void;
   dismissToast: (id: string) => void;
+
+  isPanelMinimized: boolean;
+  setIsPanelMinimized: (value: boolean) => void;
+  pendingNodeId: string | null;
+  setPendingNodeId: (id: string | null) => void;
 }
