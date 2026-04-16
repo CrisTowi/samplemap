@@ -4,12 +4,12 @@ import forceAtlas2 from 'graphology-layout-forceatlas2'
 import type { Settings } from 'sigma/settings'
 import type { NodeDisplayData, PartialButFor } from 'sigma/types'
 
-// ─── Edge direction colors ────────────────────────────────────────────────────
+// ─── Edge direction colors (light background) ────────────────────────────────
 
 export const EDGE_COLORS = {
-  sampled_from: { dim: '#1a4f3e', bright: '#1D9E75' },
-  sampled_in:   { dim: '#3a3667', bright: '#7F77DD' },
-  unknown:      { dim: '#333331', bright: '#888780' },
+  sampled_from: { dim: '#c0e0d4', bright: '#1D9E75' },
+  sampled_in:   { dim: '#d4d2f0', bright: '#7F77DD' },
+  unknown:      { dim: '#d8d8d6', bright: '#676e6f' },
 }
 
 export function getEdgeColor(direction: string | undefined, bright: boolean): string {
@@ -29,42 +29,40 @@ export const graphRefs: { sigma: Sigma | null; graphology: Graph | null } = {
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
-const FA2_FRAME_ITERATIONS = 4
-const FA2_TOTAL_FRAMES = 80
+const FA2_SETTINGS = {
+  gravity: 8,
+  scalingRatio: 1,
+  slowDown: 8,
+  adjustSizes: false,
+}
 
+// Total synchronous iterations per layout run. Running FA2 entirely
+// synchronously means the user never sees nodes moving — they appear already
+// in their final positions via the fade-in animation.
+const FA2_SYNC_ITERATIONS = 300
+
+// Cancels any in-flight layout animation (used by runResetLayout so a manual
+// reset can restart synchronously without the old animation interfering).
 let fa2AnimFrame: number | null = null
-let fa2FrameCount = 0
+
+export function cancelFA2(): void {
+  if (fa2AnimFrame !== null) {
+    cancelAnimationFrame(fa2AnimFrame)
+    fa2AnimFrame = null
+  }
+}
 
 export function runFA2Animated(graphology: Graph, sigma: Sigma): void {
-  // If already running, reset the frame counter so we extend (not restart) the run
-  if (fa2AnimFrame !== null) {
-    fa2FrameCount = 0
-    return
-  }
+  // Cancel any previous animated run before re-running synchronously,
+  // so incremental node additions don't stack animations.
+  cancelFA2()
 
-  fa2FrameCount = 0
+  forceAtlas2.assign(graphology, {
+    iterations: FA2_SYNC_ITERATIONS,
+    settings: { ...FA2_SETTINGS, barnesHutOptimize: graphology.order > 50 },
+  })
 
-  const tick = () => {
-    fa2FrameCount++
-    forceAtlas2.assign(graphology, {
-      iterations: FA2_FRAME_ITERATIONS,
-      settings: {
-        gravity: 8,
-        scalingRatio: 1,
-        slowDown: 8,
-        adjustSizes: false,
-        barnesHutOptimize: graphology.order > 50,
-      },
-    })
-    sigma.refresh()
-    if (fa2FrameCount < FA2_TOTAL_FRAMES) {
-      fa2AnimFrame = requestAnimationFrame(tick)
-    } else {
-      fa2AnimFrame = null
-    }
-  }
-
-  fa2AnimFrame = requestAnimationFrame(tick)
+  sigma.refresh()
 }
 
 export function exportGraphAsPNG(): void {
@@ -80,7 +78,7 @@ export function exportGraphAsPNG(): void {
   const ctx = combined.getContext('2d')
   if (!ctx) return
 
-  ctx.fillStyle = '#1a1a1e'
+  ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, combined.width, combined.height)
 
   canvases.forEach((canvas) => {
@@ -184,14 +182,14 @@ export function applyHoverHighlight(graphology: Graph, sigma: Sigma, nodeId: str
       graphology.setEdgeAttribute(edgeId, 'color', getEdgeColor(direction, true))
       graphology.setEdgeAttribute(edgeId, 'size', 1.5)
     } else {
-      graphology.setEdgeAttribute(edgeId, 'color', '#2a2a2a')
+      graphology.setEdgeAttribute(edgeId, 'color', '#e8e8e6')
       graphology.setEdgeAttribute(edgeId, 'size', 0.5)
     }
   })
 
   graphology.forEachNode((currentNodeId) => {
     if (!connectedNodes.has(currentNodeId)) {
-      graphology.setNodeAttribute(currentNodeId, 'color', '#3a3a3a')
+      graphology.setNodeAttribute(currentNodeId, 'color', '#d4d6d6')
     }
   })
 
@@ -238,7 +236,7 @@ const CANVAS_WIDTH = 74
 void CANVAS_HEIGHT, CANVAS_WIDTH
 
 /**
- * Custom node label renderer — dark pill background instead of Sigma's default white.
+ * Custom node label renderer — light pill background for white canvas.
  */
 export function drawDarkLabel(
   context: CanvasRenderingContext2D,
@@ -259,17 +257,17 @@ export function drawDarkLabel(
   const padX = 4
   const padY = 3
 
-  context.fillStyle = 'rgba(18, 18, 22, 0.82)'
+  context.fillStyle = 'rgba(255, 255, 255, 0.9)'
   context.beginPath()
   context.roundRect(x - padX, y - size / 2 - padY, textWidth + padX * 2, size + padY * 2, 4)
   context.fill()
 
-  context.fillStyle = '#d4d4d2'
+  context.fillStyle = '#2a2d2d'
   context.fillText(data.label, x, y + size / 2 - 1)
 }
 
 /**
- * Custom node hover renderer — glow ring + node body + dark label.
+ * Custom node hover renderer — subtle glow ring + node body + light label.
  */
 export function drawDarkNodeHover(
   context: CanvasRenderingContext2D,
@@ -278,23 +276,23 @@ export function drawDarkNodeHover(
 ): void {
   const { x, y, size, color } = data
 
-  // Outer glow
+  // Outer glow (subtle on white)
   context.beginPath()
   context.arc(x, y, size + 6, 0, Math.PI * 2)
-  context.fillStyle = `${color}33`
+  context.fillStyle = `${color}22`
   context.fill()
 
   // Border ring
   context.beginPath()
   context.arc(x, y, size + 2, 0, Math.PI * 2)
-  context.strokeStyle = color ?? '#fff'
-  context.lineWidth = 2
+  context.strokeStyle = color ?? '#1b2211'
+  context.lineWidth = 1.5
   context.stroke()
 
   // Node body
   context.beginPath()
   context.arc(x, y, size, 0, Math.PI * 2)
-  context.fillStyle = color ?? '#888'
+  context.fillStyle = color ?? '#676e6f'
   context.fill()
 
   drawDarkLabel(context, data, settings)
