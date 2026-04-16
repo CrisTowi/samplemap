@@ -299,6 +299,31 @@ export function animateLayoutTransition(graphology: Graph, sigma: Sigma, rootId:
 export function runResetLayout(): void {
   const { sigma, graphology, rootId } = graphRefs
   if (!sigma || !graphology || !rootId) return
+
+  // Collapse all manually-expanded nodes (depth > 1) back to the initial state
+  const store = useGraphStore.getState()
+  const nodesToRemove: string[] = []
+  store.graph.nodes.forEach((node, nodeId) => {
+    if (node.depth > 1) nodesToRemove.push(nodeId)
+  })
+
+  if (nodesToRemove.length > 0) {
+    // Remove from the store (syncs edges too)
+    store.removeNodes(nodesToRemove)
+    // Also drop from graphology immediately so the layout runs on the trimmed graph
+    for (const nodeId of nodesToRemove) {
+      if (graphology.hasNode(nodeId)) graphology.dropNode(nodeId)
+    }
+    // Mark all depth-1 nodes as unexpanded
+    useGraphStore.setState((prev) => {
+      const nodes = new Map(prev.graph.nodes)
+      nodes.forEach((node, nodeId) => {
+        if (node.depth === 1) nodes.set(nodeId, { ...node, isExpanded: false, isLoading: false })
+      })
+      return { graph: { ...prev.graph, nodes } }
+    })
+  }
+
   animateLayoutTransition(graphology, sigma, rootId)
   sigma.getCamera().animatedReset({ duration: 600 })
 }

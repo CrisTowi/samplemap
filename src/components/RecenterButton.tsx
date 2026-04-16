@@ -77,13 +77,13 @@ export default function RecenterButton() {
     <button
       onClick={handleRecenter}
       className={[
-        'fixed left-1/2 -translate-x-1/2 z-[25]',
+        'fixed left-[44px] z-[25]',
         'flex items-center gap-1.5 px-3 py-1.5',
         'bg-white border border-[#1b2211] rounded-full shadow-sm',
         'text-[#2a2d2d] text-[12px] leading-[16px] tracking-[-0.24px]',
         'hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors',
       ].join(' ')}
-      style={{ fontFamily: FONT_MONO, bottom: '72px' }}
+      style={{ fontFamily: FONT_MONO, top: '84px' }}
     >
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
         <circle cx="8" cy="8" r="3" />
