@@ -356,13 +356,13 @@ export default function InfoPanel() {
               )}
 
               {/* Actions */}
-              <div className="px-4 py-3 flex flex-col gap-2 shrink-0 mt-auto">
+              <div className="px-4 py-3 flex flex-col items-start gap-2 shrink-0 mt-auto">
                 {node.geniusUrl && (
                   <a
                     href={node.geniusUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-1 py-1 font-normal text-[#2a2d2d] text-[13px] leading-[18px] tracking-[-0.26px] underline hover:font-medium hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors cursor-yellow-circle"
+                    className="flex items-center gap-2 px-1 py-1 font-normal text-[#2a2d2d] text-[13px] leading-[18px] tracking-[-0.26px] underline hover:font-medium hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors cursor-yellow-circle"
                     style={{ fontFamily: FONT_MONO }}
                   >
                     Read on Genius
@@ -373,7 +373,7 @@ export default function InfoPanel() {
                 )}
                 <button
                   onClick={handleExpandFromHere}
-                  className="flex items-center justify-center px-1 py-1 font-normal text-[#2a2d2d] text-[13px] leading-[18px] tracking-[-0.26px] underline hover:font-medium hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors cursor-yellow-circle"
+                  className="flex items-center px-1 py-1 font-normal text-[#2a2d2d] text-[13px] leading-[18px] tracking-[-0.26px] underline hover:font-medium hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors cursor-yellow-circle"
                   style={{ fontFamily: FONT_MONO }}
                 >
                   Expand from here
