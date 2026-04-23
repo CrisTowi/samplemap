@@ -105,7 +105,6 @@ export default function NodePreviewPage() {
           <div className="flex-1 flex items-center">
             <Breadcrumb items={[
               { label: 'New Search', onClick: handleNewSearch },
-              { label: rootTrack.title },
             ]} />
           </div>
           <div className="flex flex-col items-center gap-2 pointer-events-none shrink-0">

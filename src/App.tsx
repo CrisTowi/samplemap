@@ -68,8 +68,7 @@ export default function App() {
           <div className="flex-1 flex items-center">
             <Breadcrumb items={[
               { label: 'New Search', onClick: handleNewSearch },
-              { label: previewTrack!.title, onClick: handleBackToPreview },
-              { label: 'Map' },
+              { label: 'My Search', onClick: handleBackToPreview },
             ]} />
           </div>
 

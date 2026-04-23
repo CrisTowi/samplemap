@@ -15,8 +15,7 @@ export default function Breadcrumb({ items }: Props) {
   return (
     <nav className="flex items-center">
       {items.map((item, index) => {
-        const isLast = index === items.length - 1
-        const isClickable = !isLast && !!item.onClick
+        const isClickable = !!item.onClick
 
         return (
           <Fragment key={index}>
@@ -47,10 +46,7 @@ export default function Breadcrumb({ items }: Props) {
             ) : (
               <span
                 className={[
-                  'text-[14px] leading-[18px] tracking-[-0.28px] px-1',
-                  isLast
-                    ? 'text-[#9ca4a4] max-w-[120px] sm:max-w-[220px] truncate'
-                    : 'text-[#2a2d2d]',
+                  'text-[14px] leading-[18px] tracking-[-0.28px] px-1 text-[#2a2d2d]',
                 ].join(' ')}
                 style={{ fontFamily: FONT_MONO }}
               >
