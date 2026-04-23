@@ -68,7 +68,7 @@ export default function RecenterButton() {
     const framedTarget = sigma.viewportToFramedGraph(nodeViewport)
 
     sigma.getCamera().animate(
-      { x: framedTarget.x, y: framedTarget.y },
+      { x: framedTarget.x, y: framedTarget.y, ratio: 1 },
       { duration: 500, easing: 'quadraticInOut' }
     )
   }
