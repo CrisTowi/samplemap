@@ -8,6 +8,8 @@ const VISIBILITY_MARGIN = 40
 
 export default function RecenterButton() {
   const rootId = useGraphStore((state) => state.graph.rootId)
+  const selectedNodeId = useGraphStore((state) => state.selectedNodeId)
+  const isPanelMinimized = useGraphStore((state) => state.isPanelMinimized)
   const [isOffScreen, setIsOffScreen] = useState(false)
 
   const checkVisibility = useCallback(() => {
@@ -73,17 +75,28 @@ export default function RecenterButton() {
 
   if (!isOffScreen) return null
 
+  const panelOpen = selectedNodeId !== null
+  const bottomOffset = !panelOpen
+    ? '24px'
+    : isPanelMinimized
+      ? '80px'
+      : 'calc(min(55vh, 500px) + 24px)'
+
   return (
     <button
       onClick={handleRecenter}
       className={[
-        'fixed left-[44px] z-[25]',
+        'fixed right-6 z-[25]',
         'flex items-center gap-1.5 px-3 py-1.5',
         'bg-white border border-[#1b2211] rounded-full shadow-sm',
         'text-[#2a2d2d] text-[12px] leading-[16px] tracking-[-0.24px]',
         'hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors cursor-yellow-circle',
       ].join(' ')}
-      style={{ fontFamily: FONT_MONO, top: '80px' }}
+      style={{
+        fontFamily: FONT_MONO,
+        bottom: bottomOffset,
+        transition: 'bottom 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+      }}
     >
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
         <circle cx="8" cy="8" r="3" />
