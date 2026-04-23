@@ -3,6 +3,7 @@ import { useGraphStore } from '../store/graphStore'
 import { search } from '../services/whosampled'
 import { resolveVideoTitle } from '../services/youtube'
 import { getTrackById } from '../services/spotify'
+import SearchWaveDivider from './SearchWaveDivider'
 import type { Track } from '../types'
 
 const YOUTUBE_URL_RE = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/
@@ -21,8 +22,16 @@ export default function SearchPage() {
   const [results, setResults] = useState<Track[]>([])
   const [showAll, setShowAll] = useState(false)
   const [isResolving, setIsResolving] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const markTyping = () => {
+    setIsTyping(true)
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 500)
+  }
 
   const setPreviewTrack = useGraphStore((state) => state.setPreviewTrack)
   const addToast = useGraphStore((state) => state.addToast)
@@ -105,6 +114,7 @@ export default function SearchPage() {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value
     setQuery(value)
+    markTyping()
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
@@ -180,11 +190,8 @@ export default function SearchPage() {
         />
       </div>
 
-      {/* ─── Full-width divider ────────────────────────────────────────────── */}
-      <div
-        className="absolute left-0 right-0 h-px bg-[#1b2211]"
-        style={{ top: 'calc(50% - 145px)' }}
-      />
+      {/* ─── Full-width divider / sound wave ─────────────────────────────── */}
+      <SearchWaveDivider active={isTyping} />
 
       {/* ─── Status line — 12px below divider ─────────────────────────────── */}
       <div
@@ -235,7 +242,7 @@ export default function SearchPage() {
             <button
               key={track.id}
               onClick={(event) => { event.stopPropagation(); void handleSelect(track) }}
-              className="w-full text-left group"
+              className="w-full text-left group cursor-yellow-circle"
             >
               <div className="flex items-center gap-[8px] pt-[4px] px-[8px] pb-[4px] group-hover:bg-[#fbffe5] transition-colors">
                 {/* Album art — circular with border */}
@@ -304,6 +311,7 @@ export default function SearchPage() {
                   // Pressed state: Medium 500, Background/Accents/Joy
                   'active:font-medium active:bg-[#f4ffc8]',
                   'transition-colors',
+                  'cursor-yellow-circle',
                 ].join(' ')}
                 style={{ fontFamily: FONT_MONO }}
               >
@@ -320,7 +328,7 @@ export default function SearchPage() {
           className="text-[16px] leading-[20px] text-[#2a2d2d] tracking-[-0.32px] whitespace-nowrap"
           style={{ fontFamily: FONT_MONO }}
         >
-          2026, Powered by Lucila and Christian
+          2026, Powered by Lucy and Christian
         </span>
       </div>
     </div>

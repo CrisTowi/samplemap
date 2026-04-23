@@ -81,7 +81,7 @@ export default function RecenterButton() {
         'flex items-center gap-1.5 px-3 py-1.5',
         'bg-white border border-[#1b2211] rounded-full shadow-sm',
         'text-[#2a2d2d] text-[12px] leading-[16px] tracking-[-0.24px]',
-        'hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors',
+        'hover:bg-[#fbffe5] active:bg-[#f4ffc8] transition-colors cursor-yellow-circle',
       ].join(' ')}
       style={{ fontFamily: FONT_MONO, top: '80px' }}
     >

@@ -6,6 +6,7 @@ import ToastContainer from './components/ToastContainer'
 import BuildProgress from './components/BuildProgress'
 import SelectedNodeRing from './components/SelectedNodeRing'
 import RecenterButton from './components/RecenterButton'
+import Breadcrumb from './components/Breadcrumb'
 import { useGraphStore } from './store/graphStore'
 import { runResetLayout } from './components/graphHelpers'
 
@@ -47,6 +48,10 @@ export default function App() {
     setPreviewTrack(null)
   }
 
+  const handleBackToPreview = () => {
+    resetGraph()
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-white">
       {/* Full-screen graph canvas */}
@@ -57,23 +62,15 @@ export default function App() {
 
       {/* Top bar — white background prevents node overlap */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-[#e8e8e4]">
-        <div className="flex items-center h-[72px] px-4 sm:px-[44px]">
+        <div className="mx-auto max-w-[1512px] flex items-center h-[72px] px-4 sm:px-[44px]">
 
-          {/* Left: New search */}
+          {/* Left: Breadcrumb */}
           <div className="flex-1 flex items-center">
-            <button
-              onClick={handleNewSearch}
-              className={[
-                'flex items-center justify-center px-1',
-                'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
-                'hover:font-medium hover:bg-[#fbffe5]',
-                'active:font-medium active:bg-[#f4ffc8]',
-                'transition-colors whitespace-nowrap',
-              ].join(' ')}
-              style={{ fontFamily: FONT_MONO }}
-            >
-              New search
-            </button>
+            <Breadcrumb items={[
+              { label: 'New Search', onClick: handleNewSearch },
+              { label: previewTrack!.title, onClick: handleBackToPreview },
+              { label: 'Map' },
+            ]} />
           </div>
 
           {/* Center: Logo */}
@@ -118,6 +115,7 @@ export default function App() {
                 'hover:font-medium hover:bg-[#fbffe5]',
                 'active:font-medium active:bg-[#f4ffc8]',
                 'transition-colors',
+                'cursor-yellow-circle',
               ].join(' ')}
               style={{ fontFamily: FONT_MONO }}
             >

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useGraphStore } from '../store/graphStore'
 import { getSampleRelationships } from '../services/whosampled'
 import { buildGraphFromRoot } from '../services/graphBuilder'
+import Breadcrumb from './Breadcrumb'
 import type { Track } from '../types'
 
 const FONT_MONO = "'IBM Plex Mono', monospace"
@@ -97,25 +98,15 @@ export default function NodePreviewPage() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-white">
-    <div className="relative mx-auto max-w-[1512px] h-full">
 
       {/* ─── Top bar ─────────────────────────────────────────────────────── */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-[#e8e8e4]">
-        <div className="flex items-center h-[72px] px-4 sm:px-[44px]">
+        <div className="mx-auto max-w-[1512px] flex items-center h-[72px] px-4 sm:px-[44px]">
           <div className="flex-1 flex items-center">
-            <button
-              onClick={handleNewSearch}
-              className={[
-                'flex items-center justify-center px-1',
-                'font-normal text-[#2a2d2d] text-[14px] leading-[18px] tracking-[-0.28px] underline decoration-solid',
-                'hover:font-medium hover:bg-[#fbffe5]',
-                'active:font-medium active:bg-[#f4ffc8]',
-                'transition-colors whitespace-nowrap',
-              ].join(' ')}
-              style={{ fontFamily: FONT_MONO }}
-            >
-              New search
-            </button>
+            <Breadcrumb items={[
+              { label: 'New Search', onClick: handleNewSearch },
+              { label: rootTrack.title },
+            ]} />
           </div>
           <div className="flex flex-col items-center gap-2 pointer-events-none shrink-0">
             <svg width="43" height="13" viewBox="0 0 43 13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -130,6 +121,8 @@ export default function NodePreviewPage() {
           <div className="flex-1" />
         </div>
       </div>
+
+    <div className="relative mx-auto max-w-[1512px] h-full">
 
       {/* ─── Mobile layout (sm:hidden) ───────────────────────────────────── */}
       {/* No skeleton, no side content — just song details centered */}
@@ -337,6 +330,7 @@ export default function NodePreviewPage() {
                 'hover:font-medium hover:bg-[#fbffe5]',
                 'active:font-medium active:bg-[#f4ffc8]',
                 'transition-colors',
+                'cursor-yellow-circle',
               ].join(' ')}
               style={{ fontFamily: FONT_MONO }}
             >
@@ -380,7 +374,7 @@ export default function NodePreviewPage() {
       {/* ─── Footer ───────────────────────────────────────────────────────── */}
       <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 pointer-events-none">
         <span className="text-[16px] leading-[20px] text-[#2a2d2d] tracking-[-0.32px] whitespace-nowrap" style={{ fontFamily: FONT_MONO }}>
-          2026, Powered by Lucila and Christian
+          2026, Powered by Lucy and Christian
         </span>
       </div>
     </div>

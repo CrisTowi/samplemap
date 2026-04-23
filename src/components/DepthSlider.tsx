@@ -34,7 +34,7 @@ export default function DepthSlider() {
             'w-6 rounded-md text-xs transition-colors',
             depth === maxDepth
               ? 'bg-[#1b2211] text-white font-semibold'
-              : 'text-[#676e6f] hover:text-[#2a2d2d] hover:bg-[#fbffe5]',
+              : 'text-[#676e6f] hover:text-[#2a2d2d] hover:bg-[#fbffe5] cursor-yellow-circle',
             'disabled:opacity-40 disabled:cursor-not-allowed',
           ].join(' ')}
           style={{ fontFamily: FONT_MONO }}

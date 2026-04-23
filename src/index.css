@@ -12,6 +12,10 @@ html, body, #root {
   overflow: hidden;
 }
 
+body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8' fill='%23fbffe5' stroke='%231b2211' stroke-width='2'/%3E%3C/svg%3E") 10 10, auto;
+}
+
 /* Progress bar — sweeps left-to-right repeatedly while building */
 @keyframes progress-bar {
   0%   { transform: translateX(-100%); }
@@ -49,4 +53,9 @@ html, body, #root {
 
 .animate-slide-in {
   animation: slide-in 0.2s ease-out forwards;
+}
+
+/* Custom cursor for yellow-hover interactive elements */
+.cursor-yellow-circle {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8' fill='%23fbffe5' stroke='%231b2211' stroke-width='2'/%3E%3C/svg%3E") 10 10, pointer;
 }

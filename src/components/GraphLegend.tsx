@@ -113,7 +113,7 @@ export default function GraphLegend() {
       {/* Toggle button */}
       <button
         onClick={() => setExpanded((previous) => !previous)}
-        className="flex items-center justify-between gap-3 bg-white border border-[#1b2211] rounded-xl px-4 py-3 hover:bg-[#fbffe5] transition-colors"
+        className="flex items-center justify-between gap-3 bg-white border border-[#1b2211] rounded-xl px-4 py-3 hover:bg-[#fbffe5] transition-colors cursor-yellow-circle"
         aria-label={expanded ? 'Collapse legend' : 'Expand legend'}
       >
         <span
