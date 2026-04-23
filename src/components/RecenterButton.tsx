@@ -98,12 +98,9 @@ export default function RecenterButton() {
         transition: 'bottom 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
       }}
     >
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-        <circle cx="8" cy="8" r="3" />
-        <line x1="8" y1="1" x2="8" y2="4" />
-        <line x1="8" y1="12" x2="8" y2="15" />
-        <line x1="1" y1="8" x2="4" y2="8" />
-        <line x1="12" y1="8" x2="15" y2="8" />
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 1.5a4.5 4.5 0 0 1 4.5 4.5c0 3.2-4.5 8.5-4.5 8.5S3.5 9.2 3.5 6A4.5 4.5 0 0 1 8 1.5z" />
+        <circle cx="8" cy="6" r="1.5" />
       </svg>
       Recenter
     </button>
