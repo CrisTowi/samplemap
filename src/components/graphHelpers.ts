@@ -209,7 +209,7 @@ export function exportGraphAsPNG(): void {
   })
 
   const link = document.createElement('a')
-  link.download = 'samplemap-graph.png'
+  link.download = 'node-record-graph.png'
   link.href = combined.toDataURL('image/png')
   link.click()
 }

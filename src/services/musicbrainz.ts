@@ -4,7 +4,7 @@ import type { Track } from '../types'
 
 const BASE_URL = 'https://musicbrainz.org/ws/2'
 // MusicBrainz requires a descriptive User-Agent or requests get blocked
-const USER_AGENT = 'SampleMap/1.0.0 (https://github.com/samplemap/samplemap)'
+const USER_AGENT = 'NodeRecord/1.0.0 (https://github.com/CrisTowi/samplemap)'
 
 // ─── Rate limiter ────────────────────────────────────────────────────────────
 // MusicBrainz allows max 1 unauthenticated request/second.
